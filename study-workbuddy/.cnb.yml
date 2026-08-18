@@ -1,0 +1,49 @@
+# ============================================================
+# .cnb.yml —— 腾讯云原生构建（CNB）入门流水线
+# 官方文档：https://docs.cnb.cool/zh/configuration.html
+# 使用说明：把本文件放到你的代码仓库根目录，git 提交并推送后自动触发
+# 适配：Node.js 项目；其他语言见配套讲解文档里的“换语言”示例
+# ============================================================
+
+# ---------- 第 1 部分：推送到 main 分支 或 提 PR 时，构建 + 测试 ----------
+main:                      # ① 分支名：监听 main 分支（换成 master 也可）
+  push:                   # ② 触发事件一：收到 git push 到 main 时触发
+    - name: build-and-test        # ③ 流水线名称（一条事件下可写多条流水线，会并发执行）
+      docker:                     # ④ 运行环境：用 Docker 镜像当“执行机器”
+        image: node:22            #    这里用官方 Node.js 22 镜像
+      stages:                     # ⑤ 阶段列表：按顺序串行执行，共用上面那个 node:22 环境
+        - name: 安装依赖          # ⑥ 阶段一
+          script: npm install     #    在 node:22 容器里实际执行的命令
+        - name: 代码检查
+          script: npm run lint
+        - name: 运行测试
+          script: npm test
+        - name: 打包构建
+          script: npm run build
+
+  pull_request:            # ② 触发事件二：有人向 main 提/更新 PR 时触发
+    - name: pr-check
+      docker:
+        image: node:22
+      stages:
+        - name: 安装依赖
+          script: npm install
+        - name: 代码检查
+          script: npm run lint
+        - name: 运行测试
+          script: npm test
+
+# ---------- 第 2 部分：打 Git tag 发布时，构建并推送 Docker 镜像到 CNB 制品库 ----------
+tag_push:                 # ① 触发事件：推送 tag 时触发（如 git tag v1.0 && git push --tags）
+  - name: docker-build-push
+    services:
+      - docker            # 开启 Docker-in-Docker，流水线内才能用 docker build / push
+    docker:
+      image: node:22
+    stages:
+      - name: 构建并推送镜像
+        script: |
+          # 用 CNB 内置变量拼出镜像地址（开启 services:[docker] 后会自动登录制品库，可直接 push）
+          IMAGE="${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:${CNB_COMMIT_SHORT}"
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
