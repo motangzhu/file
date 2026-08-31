@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 名词全景词典 · 从底层到上层</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2a2f3a;
+    --text:#e6e9ef; --muted:#9aa3b2; --accent:#5b9dff; --accent2:#37d6a0;
+    --chip:#222834; --shadow:0 6px 24px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+
+  header h1{font-size:26px;margin:0 0 6px;letter-spacing:.5px}
+  header p{color:var(--muted);margin:0 0 18px;font-size:14px}
+  .seg{font-size:12px;color:var(--muted);background:var(--chip);
+    border:1px solid var(--line);padding:2px 8px;border-radius:20px;margin-right:6px}
+
+  /* 分层全景图 */
+  .pyramid{display:flex;flex-direction:column;gap:6px;margin:18px 0 26px}
+  .prow{display:flex;align-items:stretch;border-radius:10px;overflow:hidden;
+    border:1px solid var(--line);background:var(--panel)}
+  .prow .pl{width:150px;flex:0 0 150px;padding:12px 14px;font-weight:600;
+    display:flex;flex-direction:column;justify-content:center;font-size:13px}
+  .prow .pr{padding:10px 14px;background:var(--panel2);flex:1;
+    display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .ptag{font-size:12px;background:var(--chip);border:1px solid var(--line);
+    padding:3px 9px;border-radius:14px;cursor:pointer;transition:.15s}
+  .ptag:hover{border-color:var(--accent);color:#fff}
+  .ptag .en{color:var(--muted);font-size:11px;margin-left:4px}
+
+  /* 控制条 */
+  .controls{position:sticky;top:0;z-index:20;background:rgba(15,17,21,.92);
+    backdrop-filter:blur(8px);padding:14px 0 12px;border-bottom:1px solid var(--line);margin-bottom:18px}
+  .search{width:100%;padding:11px 14px;border-radius:10px;border:1px solid var(--line);
+    background:var(--panel);color:var(--text);font-size:15px;outline:none}
+  .search:focus{border-color:var(--accent)}
+  .filters{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .fbtn{font-size:12.5px;padding:6px 12px;border-radius:18px;border:1px solid var(--line);
+    background:var(--panel);color:var(--muted);cursor:pointer;transition:.15s}
+  .fbtn:hover{color:var(--text)}
+  .fbtn.active{color:#0f1115;font-weight:600}
+  .meta{color:var(--muted);font-size:12.5px;margin:10px 2px 0}
+  .meta b{color:var(--text)}
+
+  /* 卡片网格 */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:15px 16px;box-shadow:var(--shadow);transition:.18s;position:relative}
+  .card:hover{border-color:#3a4456;transform:translateY(-2px)}
+  .card .top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .card .tierdot{width:10px;height:10px;border-radius:50%;flex:0 0 10px}
+  .card h3{margin:0;font-size:16px}
+  .card .en{color:var(--muted);font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .card .def{font-size:13.5px;color:#cfd6e2;margin:8px 0 6px}
+  .card .detail{font-size:13px;color:var(--muted);margin:0}
+  .card .rel{margin-top:10px;font-size:11.5px;color:var(--muted)}
+  .card .rel b{color:var(--accent2);font-weight:600}
+  .card .tierlabel{position:absolute;top:14px;right:14px;font-size:10.5px;
+    color:var(--muted);background:var(--chip);padding:2px 7px;border-radius:10px}
+  .empty{color:var(--muted);text-align:center;padding:40px;font-size:14px;grid-column:1/-1}
+  .hl{background:rgba(91,157,255,.28);color:#fff;border-radius:3px;padding:0 2px}
+  footer{margin-top:40px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:16px}
+  kbd{background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:11px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>AI 名词全景词典</h1>
+    <p>
+      <span class="seg">从底层到上层</span>
+      按「算力基础设施 → 模型底座 → 推理生成 → 训练对齐 → 知识增强 → 工具协议 → Agent 编排 → 应用形态 → 工程运维」组织。
+      点击分层图里的名词可定位卡片；顶部可搜索、可按层筛选。
+    </p>
+  </header>
+
+  <div class="pyramid" id="pyramid"></div>
+
+  <div class="controls">
+    <input class="search" id="search" placeholder="搜索名词 / 英文缩写 / 关键词，例如：MCP、幻觉、量化、Agent …" autofocus>
+    <div class="filters" id="filters"></div>
+    <div class="meta" id="meta"></div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <footer>
+    共收录 <b id="total">0</b> 个核心名词，覆盖大模型（LLM）、多模态、检索增强（RAG）、工具协议（MCP/A2A）、智能体（Agent）与工程运维（LLMOps）全链路。
+    名词按技术层次组织，便于理解「谁依赖谁」。
+  </footer>
+</div>
+
+<script>
+/* ===== 数据：每一层一个颜色，名词含 中文/英文/一句定义/详解/关联 ===== */
+const TIERS = [
+  {id:1, name:"算力与基础设施", color:"#6c7a96"},
+  {id:2, name:"模型底座",     color:"#5b9dff"},
+  {id:3, name:"推理与生成",   color:"#37c0d6"},
+  {id:4, name:"训练与对齐",   color:"#37d6a0"},
+  {id:5, name:"知识增强",     color:"#9b7bff"},
+  {id:6, name:"工具与协议",   color:"#e0a84e"},
+  {id:7, name:"Agent 与编排", color:"#ff7b8a"},
+  {id:8, name:"应用形态",     color:"#ff9ed1"},
+  {id:9, name:"工程与运维",   color:"#8aa0b8"},
+];
+
+const WORDS = [
+  /* 1 算力与基础设施 */
+  {t:1, cn:"GPU / TPU / NPU", en:"Graphics/AI/Tensor Processing Unit",
+   def:"专为矩阵运算设计的并行计算芯片，是大模型训练与推理的算力底座。",
+   detail:"大模型本质是海量矩阵乘法，通用 CPU 不擅长。GPU（英伟达等）靠数千核心并行加速；TPU 是谷歌为张量运算定制的 ASIC；NPU 是端侧/手机里的 AI 加速单元。算力规模直接决定模型能有多大、推理能多快。",
+   rel:["推理引擎","量化","大模型 LLM"]},
+  {t:1, cn:"向量数据库", en:"Vector Database",
+   def:"专门存储和检索高维向量的数据库，是 RAG 的记忆外挂。",
+   detail:"把文本/图片转成 Embedding 向量后存入，查询时计算余弦相似度找出最相近的内容。Milvus、Qdrant、pgvector 等是常见实现。它让模型能「记得」远超上下文窗口的知识。",
+   rel:["Embedding","RAG","重排序"]},
+  {t:1, cn:"推理引擎", en:"Inference Engine (vLLM / TGI)",
+   def:"把训练好的模型高效跑起来、对外提供生成服务的运行时。",
+   detail:"vLLM、TGI、TensorRT-LLM 等通过连续批处理（continuous batching）、PagedAttention 等技术，把吞吐和显存利用率拉满。它们决定了「同一张卡能同时服务多少请求、首字延迟多低」。",
+   rel:["KV Cache","流式输出","GPU"]},
+  {t:1, cn:"量化", en:"Quantization",
+   def:"用更低精度（如 FP16→INT8/INT4）表示模型权重，换显存和速度。",
+   detail:"原理是模型对数值精度不敏感。4-bit 量化能让 70B 模型塞进单张消费级显卡。代价是轻微精度损失，需做校准。是「小显存跑大模型」的关键手段。",
+   rel:["蒸馏","推理引擎","LoRA"]},
+  {t:1, cn:"知识蒸馏", en:"Knowledge Distillation",
+   def:"让小模型模仿大模型的输出，把能力「压缩」到更小模型里。",
+   detail:"教师模型（大）输出软标签，学生模型（小）学习。DistilBERT、小杯版多模态模型都靠它。和量化不同，蒸馏改的是训练过程，得到的是真正更小的模型。",
+   rel:["量化","小模型 SLM","监督微调"]},
+
+  /* 2 模型底座 */
+  {t:2, cn:"Transformer", en:"Transformer",
+   def:"以自注意力机制为核心的神经网络架构，是现代大模型的共同骨架。",
+   detail:"2017 年论文《Attention Is All You Need》提出，抛弃了 RNN 的串行结构，用 Attention 让序列中任意两个位置直接交互，可并行训练、擅长长依赖。GPT、BERT、LLaMA 全是它的变体。",
+   rel:["注意力机制","位置编码","大模型 LLM"]},
+  {t:2, cn:"注意力机制", en:"Self-Attention",
+   def:"让模型在处理每个词时，动态关注序列中其他相关词的计算机制。",
+   detail:"通过 Query/Key/Value 三组向量算注意力权重。多头注意力（Multi-Head）从多个子空间捕捉不同关系。它是 Transformer 能理解上下文的核心，也是 KV Cache 的来源。",
+   rel:["Transformer","KV Cache","MoE"]},
+  {t:2, cn:"混合专家", en:"MoE (Mixture of Experts)",
+   def:"把模型拆成多个「专家」子网络，每次只激活少数几个，省钱又更强。",
+   detail:"用路由网络（Router）决定当前 token 走哪几个专家。总参数量巨大但激活参数量小，所以 Mixtral、DeepSeek 系列能在相近算力下做到更大容量。代价是显存占用高、负载不均。",
+   rel:["Transformer","大模型 LLM","推理引擎"]},
+  {t:2, cn:"大模型 LLM", en:"Large Language Model",
+   def:"在海量文本上预训练出的、能理解和生成自然语言的超大规模模型。",
+   detail:"GPT、Claude、文心、通义、DeepSeek 都属此类。能力随参数和数据规模「涌现」。分两类：自回归（GPT 系，生成式）和自编码（BERT 系，理解式）。是上层所有应用的基础。",
+   rel:["多模态大模型","预训练","推理模型"]},
+  {t:2, cn:"多模态大模型", en:"MLLM (Multimodal LLM)",
+   def:"能同时处理文本、图像、音频、视频的大模型。",
+   detail:"把图片/语音编码成和文本对齐的向量，喂进同一个 LLM 主干。GPT-4o、Gemini、Qwen-VL 等可看图问答、听音指令。视觉编码器的对齐质量决定「看懂」能力。",
+   rel:["大模型 LLM","Embedding","扩散模型"]},
+  {t:2, cn:"扩散模型", en:"Diffusion Model",
+   def:"通过逐步去噪生成图像的生成模型，是文生图的主流技术。",
+   detail:"Stable Diffusion、DALL·E、Sora 的底层。先往图片加噪，再训练模型逆向去噪。与 LLM 的自回归生成是两套路线，但正被统一进「多模态生成」框架。",
+   rel:["多模态大模型","Embedding"]},
+  {t:2, cn:"嵌入向量", en:"Embedding",
+   def:"把词/句/图转成一组数字（向量），让语义相近的东西在数值上也相近。",
+   detail:"模型内部理解语言的「坐标」。相似度靠向量夹角（余弦）衡量。RAG、推荐、聚类都依赖它。同一句话不同模型的 Embedding 不通用。",
+   rel:["向量数据库","向量检索","大模型 LLM"]},
+  {t:2, cn:"分词器", en:"Tokenizer",
+   def:"把文本切成模型能处理的「词元（Token）」的规则与模型。",
+   detail:"BPE、WordPiece、SentencePiece 是常见算法。切法影响 Token 数和成本——中文常被切成字或子词，所以同样一段话中文 Token 往往比英文多。",
+   rel:["Token","大模型 LLM"]},
+  {t:2, cn:"位置编码", en:"Positional Encoding / RoPE",
+   def:"告诉模型「词在句子里的位置」的机制，否则注意力会丢失顺序。",
+   detail:"Transformer 本身无序感。RoPE（旋转位置编码）是当今主流，让模型天然支持长上下文外推。位置编码质量直接影响长文本能力。",
+   rel:["Transformer","上下文窗口","注意力机制"]},
+
+  /* 3 推理与生成 */
+  {t:3, cn:"Token", en:"Token",
+   def:"模型处理文本的最小单位，计费与长度都按它算。",
+   detail:"英文约 4 字符=1 Token，中文约 1-2 字=1 Token。一次对话的 Token = 输入+输出。模型的上下文窗口、价格、速度都以 Token 为单位。",
+   rel:["分词器","上下文窗口","采样参数"]},
+  {t:3, cn:"上下文窗口", en:"Context Window",
+   def:"模型单次能「看到」的最大 Token 数（输入+输出合计）。",
+   detail:"像短期记忆容量。超出部分会被截断或压缩。2026 年主流已到 12.8 万~200 万 Token。但窗口大≠真能用好，过长会「中间遗忘」（lost in the middle）。",
+   rel:["Token","位置编码","上下文工程"]},
+  {t:3, cn:"采样参数", en:"Temperature / Top-P / Top-K",
+   def:"控制生成「随机度与多样性」的旋钮。",
+   detail:"Temperature 越低越确定（接近 0 变贪心）；越高越发散有创意。Top-P 只从累计概率前 p 的词里选。代码/事实类任务用低温，头脑风暴用高温。注意：低温不保证「正确」，只保证「稳定」。",
+   rel:["Token","推理模型","幻觉"]},
+  {t:3, cn:"KV Cache", en:"Key-Value Cache",
+   def:"缓存已算过的注意力键值，避免每生成一个字都重算全文。",
+   detail:"是自回归生成提速的关键。代价是显存随上下文线性增长，这也是长窗口费显存的主因。PagedAttention（vLLM）就是优化它的显存管理。",
+   rel:["注意力机制","推理引擎","上下文窗口"]},
+  {t:3, cn:"流式输出", en:"Streaming",
+   def:"模型边生成边返回，像打字机一样逐字吐出，而非等全部生成完。",
+   detail:"靠 SSE/WebSocket 把 Token 一段段推给前端。用户体验上「秒回」，工程上首字延迟（TTFT）和每秒字数（TPS）是关键指标。",
+   rel:["推理引擎","Token","API"]},
+  {t:3, cn:"思维链", en:"CoT (Chain-of-Thought)",
+   def:"让模型「一步步想」再给答案，显著提升复杂推理准确率。",
+   detail:"通过提示「Let's think step by step」或训练模型先输出推理过程。是推理模型的前身思想。few-shot 给几个带推理的例子效果更佳。",
+   rel:["推理模型","少样本","提示工程"]},
+  {t:3, cn:"推理模型", en:"Reasoning Model (o1 / R1 类)",
+   def:"在回答前先做大量内部「思考」的模型，擅长数学/代码/逻辑。",
+   detail:"OpenAI o1/o3、DeepSeek-R1 等。它们把 CoT 内化进训练，生成时消耗大量「思考 Token」，慢但准。适合难题，不适合闲聊（太慢太贵）。",
+   rel:["思维链","采样参数","大模型 LLM"]},
+
+  /* 4 训练与对齐 */
+  {t:4, cn:"预训练", en:"Pre-training",
+   def:"在海量无标注文本上「从零」学语言规律和世界知识的阶段。",
+   detail:"目标通常是预测下一个 Token（自监督）。耗资巨大（数千 GPU、数月）。产出的基座模型拥有通用能力，但未必听话、未必安全——需后续对齐。",
+   rel:["大模型 LLM","监督微调","对齐"]},
+  {t:4, cn:"监督微调", en:"SFT (Supervised Fine-Tuning)",
+   def:"用「指令—回答」范例教模型按人类期望的格式和风格回应。",
+   detail:"预训练后第一步对齐。给高质量对话数据，让模型学会「问答范式」。数据质量>>数量。SFT 决定模型「像不像会聊天」，但不解决「会不会乱说」。",
+   rel:["预训练","RLHF","LoRA"]},
+  {t:4, cn:"人类反馈强化学习", en:"RLHF / DPO",
+   def:"用人类偏好信号让模型「更合人意、更安全」。",
+   detail:"RLHF 训一个奖励模型打分，再用强化学习优化策略；DPO 直接拿「好答案/坏答案」对优化，省掉奖励模型。是 ChatGPT 类助手「好用」的关键一步。",
+   rel:["监督微调","对齐","幻觉"]},
+  {t:4, cn:"低秩适配", en:"LoRA / QLoRA",
+   def:"只训练模型里一小部分「增量权重」来微调，省显存省时间。",
+   detail:"冻结原模型，往里插低秩矩阵。QLoRA 再叠加 4-bit 量化，消费级显卡也能微调大模型。产出的「适配器」只有几十~几百 MB，可热插拔切换不同人格/任务。",
+   rel:["监督微调","量化","大模型 LLM"]},
+  {t:4, cn:"对齐", en:"Alignment",
+   def:"让模型的目标和行为符合人类价值观与意图的总称。",
+   detail:"包含 RLHF、安全准则、拒答有害请求等。目标是「乐于助人、诚实、无害」。对齐不足会产出有害内容；过度对齐又会变得过于保守（「谄媚」）。",
+   rel:["RLHF","安全护栏","幻觉"]},
+  {t:4, cn:"幻觉", en:"Hallucination",
+   def:"模型一本正经地编造看似合理但错误/不存在的事实。",
+   detail:"根因是模型在「预测下一个词」而非「查事实」。概率生成天然会产生。缓解靠 RAG（给真实依据）、引用溯源、Grounding、降低温度+后验证。是落地最大的坑。",
+   rel:["RAG","对齐","安全护栏"]},
+
+  /* 5 知识增强 */
+  {t:5, cn:"检索增强生成", en:"RAG (Retrieval-Augmented Generation)",
+   def:"先查资料再回答，把外部知识「喂」给模型，治幻觉、补时效。",
+   detail:"流程：用户提问→向量检索相关知识→拼进 Prompt→模型据此生成并引用。让模型用上私有/最新数据，不必重训。企业知识库、客服兜底都靠它。",
+   rel:["向量数据库","向量检索","重排序"]},
+  {t:5, cn:"向量检索 / 相似度", en:"Vector Search / Similarity",
+   def:"按语义而非关键词匹配，找出和提问最相关的片段。",
+   detail:"把问题和文档都转成 Embedding，算余弦相似度排序。解决了「关键词对不上但意思一样」的问题。但纯向量检索容易召回噪声，需配合重排序。",
+   rel:["Embedding","向量数据库","重排序"]},
+  {t:5, cn:"重排序", en:"Reranking",
+   def:"对初检结果用更强模型二次精排，提升「最相关」排在前面。",
+   detail:"向量检索快但粗，Reranker（如 cross-encoder）慢但准。两阶段（召回+重排）是 RAG 质量的关键。没它，答案可能引用了不相关的片段。",
+   rel:["向量检索","RAG","Agentic RAG"]},
+  {t:5, cn:"智能体式检索", en:"Agentic RAG",
+   def:"让 Agent 自主决定「查什么、查几次、要不要换思路」的 RAG。",
+   detail:"普通 RAG 只查一次；Agentic RAG 能多轮检索、拆解子问题、调用不同知识源、自我纠错。是 RAG 与 Agent 能力的结合点。",
+   rel:["RAG","Agent","重排序"]},
+
+  /* 6 工具与协议 */
+  {t:6, cn:"函数调用 / 工具使用", en:"Function Calling / Tool Use",
+   def:"模型输出「我要调用某函数+参数」的结构化指令，由外部执行。",
+   detail:"模型不再只动嘴，能真正「动手」：查天气、跑 SQL、发消息。本质是把模型输出接进确定性的代码。是 Agent 能干活的基础能力。",
+   rel:["Agent","MCP","API"]},
+  {t:6, cn:"模型上下文协议", en:"MCP (Model Context Protocol)",
+   def:"给 AI 模型接外部工具/数据的「统一插头」标准（Anthropic 提出）。",
+   detail:"类比 USB-C：以前每个工具要单独适配，MCP 用一套协议让模型连任何 MCP Server（文件系统、数据库、API）。分 Host/Client/Server。显著降低了「接工具」的重复劳动。",
+   rel:["函数调用","A2A","Agent"]},
+  {t:6, cn:"智能体间协议", en:"A2A (Agent-to-Agent)",
+   def:"让多个 Agent 互相发现、委派、协作的通信标准（Google 提出）。",
+   detail:"MCP 解决「Agent 接工具」，A2A 解决「Agent 接 Agent」。定义 Agent Card（能力名片）、任务、消息格式，让异构 Agent 组队。",
+   rel:["MCP","多智能体","编排器"]},
+  {t:6, cn:"API / SDK", en:"Application Programming Interface / SDK",
+   def:"模型或工具对外提供能力的程序接口与开发包。",
+   detail:"Chat Completions API 是调模型的标准入口；SDK 是封装好的各语言客户端。Rate Limit（限流）、流式、鉴权都在这层。429 错误就是触发了限流。",
+   rel:["流式输出","函数调用","推理引擎"]},
+
+  /* 7 Agent 与编排 */
+  {t:7, cn:"智能体", en:"Agent",
+   def:"能自主感知、规划、调用工具、行动以完成目标的 AI 系统。",
+   detail:"不只是聊天，而是「有目标+会用工具+会循环迭代」的实体。核心循环：感知→思考→行动→观察→再思考。LLM 提供「脑子」，工具提供「手脚」，循环提供「坚持」。",
+   rel:["Agent Loop","函数调用","记忆"]},
+  {t:7, cn:"智能体循环", en:"Agent Loop",
+   def:"Agent 反复「想—做—看」直到任务完成的引擎。",
+   detail:"每一轮：模型决定下一步动作→调用工具→观察真实返回→据此决定下一轮。循环给模型「试错和纠正」的机会，是把概率性模型收敛到确定性结果的关键。需设最大轮数防死循环。",
+   rel:["智能体","规划","反思"]},
+  {t:7, cn:"多智能体", en:"Multi-Agent",
+   def:"多个各有所长的 Agent 分工协作完成复杂任务。",
+   detail:"如「规划者+执行者+审查者」三角色。能并行、能互相校验。但通信开销和一致性是难点。需编排器协调，否则容易「扯皮」。",
+   rel:["编排器","子代理","A2A"]},
+  {t:7, cn:"编排器", en:"Orchestrator",
+   def:"负责把任务拆给子 Agent、汇总结果、控制流程的「总指挥」。",
+   detail:"决定谁先干、谁复核、何时停。可以是代码（确定性 DAG）或另一个 LLM（动态规划）。本环境里的任务拆分与调度就属此类。",
+   rel:["多智能体","工作流","规划"]},
+  {t:7, cn:"工作流", en:"Workflow / DAG",
+   def:"把步骤固化为有向无环图，按确定顺序自动跑的流程。",
+   detail:"和自主 Agent 相对：Workflow 是「写死的步骤」，可预测、易回滚；Agent 是「动态摸索」。很多生产系统用 Workflow 包住少量 Agent，兼顾可控与智能。",
+   rel:["编排器","智能体","上下文工程"]},
+  {t:7, cn:"记忆", en:"Memory",
+   def:"让 Agent 跨轮/跨会话记住信息的能力。",
+   detail:"分短期（当前上下文）、长期（写文件/数据库）、工作记忆（任务进度）。本环境靠 .workbuddy/memory 文件持久化。本质是「把状态外置」，避免上下文被冲掉。",
+   rel:["智能体","上下文窗口","上下文工程"]},
+  {t:7, cn:"规划", en:"Planning",
+   def:"Agent 在动手前先拆解任务、排步骤的能力。",
+   detail:"如把「写报告」拆成「查资料→列大纲→写初稿→校对」。有显式规划（先输出计划）和隐式（边做边想）。好的规划能降低无效循环。",
+   rel:["智能体","编排器","反思"]},
+  {t:7, cn:"反思", en:"Reflection",
+   def:"Agent 自我检查「做对了没、要不要重来」的机制。",
+   detail:"生成→自评→修订 的闭环。典型如 Reflexion 框架。配合工具返回的真实结果，能显著减少幻觉和半成品。是「声称做完实际没做」的克星。",
+   rel:["Agent Loop","规划","评估"]},
+  {t:7, cn:"子代理", en:"Subagent",
+   def:"由主 Agent 派出去、在独立上下文里干专项任务的分身。",
+   detail:"关键价值：隔离上下文——子代理在自己的窗口里烧 Token，只回传结论，主上下文不被海量中间过程污染。是扩展 Agent 能力、控制主窗口成本的利器。",
+   rel:["多智能体","记忆","上下文工程"]},
+  {t:7, cn:"计算机操作", en:"Computer Use",
+   def:"让 Agent 像人一样操作图形界面（点按钮、打字、看图）。",
+   detail:"模型直接读屏幕截图、输出点击/输入坐标。Claude Computer Use、UI-TARS 等。能操控没有 API 的老系统，但慢且易错，需人机确认关键操作。",
+   rel:["智能体","函数调用","安全护栏"]},
+
+  /* 8 应用形态 */
+  {t:8, cn:"副驾驶", en:"Copilot",
+   def:"嵌在现有工具里、辅助人完成工作的 AI（如写代码、写文档）。",
+   detail:"人机协作范式：人主导，AI 在旁建议/补全。GitHub Copilot、Office Copilot 是代表。强调「增强人」而非「替代人」。",
+   rel:["Chatbot","智能体应用","函数调用"]},
+  {t:8, cn:"聊天机器人", en:"Chatbot",
+   def:"基于对话界面、一问一答的最基础 AI 应用形态。",
+   detail:"最早普及的形态。本质是「单轮/多轮对话 + 生成」。当接上工具和循环，Chatbot 就升级成了 Agent。",
+   rel:["大模型 LLM","副驾驶","智能体"]},
+  {t:8, cn:"智能体应用", en:"Agent App",
+   def:"以 Agent 为核心、能自主跑完一个业务流程的产品。",
+   detail:"如自动订票、自动排查故障、自动生成并发布报告。相比 Chatbot，它有自己的目标、工具和循环，能在无人干预下推进。本环境的「任务自动执行」即属此类。",
+   rel:["智能体","工作流","MCP"]},
+
+  /* 9 工程与运维 */
+  {t:9, cn:"提示词", en:"Prompt",
+   def:"你给模型的指令/问题，是和模型沟通的语言。",
+   detail:"同样模型，Prompt 写得好坏结果天差地别。包含任务、上下文、格式、示例、约束。是普通人「调教」AI 最直接的手段。",
+   rel:["提示工程","系统提示","少样本"]},
+  {t:9, cn:"提示工程", en:"Prompt Engineering",
+   def:"设计和优化 Prompt 以稳定拿到好结果的方法论。",
+   detail:"含角色设定、结构化输出、思维链、少样本、自我一致性等技巧。不是玄学：本质是「给模型更清晰的决策边界」。但复杂逻辑该交给 Workflow/Agent，而非堆 Prompt。",
+   rel:["提示词","思维链","少样本"]},
+  {t:9, cn:"系统提示", en:"System Prompt",
+   def:"在对话最前面、设定模型身份与规则的隐藏指令。",
+   detail:"定义「你是谁、该做什么、边界在哪」。本环境的自定义指令、专业领域约束都写在这里。它优先级高，但会被超长上下文「稀释」，所以要短而硬。",
+   rel:["提示词","对齐","上下文工程"]},
+  {t:9, cn:"上下文学习", en:"In-context Learning",
+   def:"模型不需改权重，靠 Prompt 里给的例子现学现用。",
+   detail:"把几个范例塞进上下文，模型就能照着做。是少样本/零样本能力的基础，也是 RAG 能生效的前提——模型能从上下文「读」出新知识。",
+   rel:["少样本","提示工程","RAG"]},
+  {t:9, cn:"少样本 / 零样本", en:"Few-shot / Zero-shot",
+   def:"给几个例子（少样本）或不给例子（零样本）就让模型干活。",
+   detail:"Zero-shot 考基础能力；Few-shot 靠示例引导格式和风格，常比改模型更省事。是评测模型泛化能力的标准说法。",
+   rel:["上下文学习","提示工程","思维链"]},
+  {t:9, cn:"安全护栏", en:"Guardrail",
+   def:"在模型输入/输出处设的「过滤网」，拦截有害/越界内容。",
+   detail:"可基于规则（关键词、正则）、分类器或另一个模型。分输入护栏（防注入）和输出护栏（防泄露）。和模型内置的「对齐」互补——护栏是确定性的最后一道闸。",
+   rel:["对齐","幻觉","计算机操作"]},
+  {t:9, cn:"评估", en:"Eval",
+   def:"用指标/评审衡量模型或 Agent 输出「好不好」的方法。",
+   detail:"有自动指标（准确率、BLEU、代码通过率）、LLM 评委（用强模型打分）、人工评测。Agent 尤其难评——要测「过程对不对、是否达成目标」。没有 Eval 就没有迭代方向。",
+   rel:["基准","反思","智能体"]},
+  {t:9, cn:"基准测试", en:"Benchmark",
+   def:"标准化的公开题库，用来横向比模型能力。",
+   detail:"MMLU（知识）、HumanEval（代码）、GSM8K（数学）等。看榜单要小心：刷榜（数据污染）和「考试技巧」会让分数失真。真实业务场景往往比榜单难。",
+   rel:["评估","大模型 LLM","推理模型"]},
+  {t:9, cn:"大模型运维", en:"LLMOps",
+   def:"把大模型应用从「能跑」管到「稳定可靠可观测」的一套工程。",
+   detail:"含 Prompt 版本管理、评测流水线、成本监控、链路追踪、回滚。类比 MLOps 但更关注「提示+工具+上下文」的变更。发版五要素（版本/灰度/步骤/验证/回滚）就落在这层。",
+   rel:["评估","上下文工程","工作流"]},
+  {t:9, cn:"上下文工程", en:"Context Engineering",
+   def:"主动设计「塞进模型窗口的每一句话」的学问，比写 Prompt 更系统。",
+   detail:"2024 后兴起的概念：Prompt 是单条指令，上下文工程是「在循环里动态组装系统提示+记忆+工具结果+约束」。目标是让每轮信息增益最大、污染最小。是 Agent 可靠的真正主战场。",
+   rel:["上下文窗口","记忆","系统提示"]},
+];
+
+/* ===== 渲染 ===== */
+const tierMap = Object.fromEntries(TIERS.map(x=>[x.id,x]));
+const grid = document.getElementById('grid');
+const pyramid = document.getElementById('pyramid');
+const filters = document.getElementById('filters');
+const search = document.getElementById('search');
+const meta = document.getElementById('meta');
+const totalEl = document.getElementById('total');
+
+let activeTiers = new Set();      // 空 = 全部
+let keyword = "";
+
+/* 分层全景图 */
+TIERS.forEach(tier=>{
+  const row = document.createElement('div'); row.className='prow';
+  const words = WORDS.filter(w=>w.t===tier.id);
+  const left = document.createElement('div'); left.className='pl';
+  left.style.background = tier.color+'22'; left.style.color = tier.color;
+  left.innerHTML = `<span>L${tier.id}</span><span style="font-size:12px;opacity:.85">${tier.name}</span>`;
+  const right = document.createElement('div'); right.className='pr';
+  words.forEach(w=>{
+    const tag = document.createElement('span'); tag.className='ptag';
+    tag.innerHTML = `${w.cn}<span class="en">${w.en.split(' (')[0].split(' / ')[0]}</span>`;
+    tag.onclick = ()=>{ activeTiers = new Set([tier.id]); syncFilters(); render();
+      const el = document.getElementById('w'+w.id); if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); };
+    right.appendChild(tag);
+  });
+  row.appendChild(left); row.appendChild(right); pyramid.appendChild(row);
+});
+
+/* 筛选按钮 */
+TIERS.forEach(tier=>{
+  const b = document.createElement('button'); b.className='fbtn'; b.textContent = `${tier.name}`;
+  b.style.borderColor = tier.color+'66';
+  b.onclick = ()=>{
+    if(activeTiers.has(tier.id)) activeTiers.delete(tier.id); else activeTiers.add(tier.id);
+    syncFilters(); render();
+  };
+  b.dataset.tier = tier.id; filters.appendChild(b);
+});
+const allBtn = document.createElement('button'); allBtn.className='fbtn active'; allBtn.textContent='全部';
+allBtn.onclick = ()=>{ activeTiers.clear(); syncFilters(); render(); };
+filters.appendChild(allBtn);
+
+function syncFilters(){
+  [...filters.children].forEach(b=>{
+    if(b.textContent==='全部'){ b.classList.toggle('active', activeTiers.size===0);
+      b.style.background = activeTiers.size===0 ? 'var(--accent)' : 'var(--panel)'; return; }
+    const on = activeTiers.has(+b.dataset.tier);
+    b.classList.toggle('active', on);
+    b.style.background = on ? tierMap[+b.dataset.tier].color : 'var(--panel)';
+    b.style.color = on ? '#0f1115' : 'var(--muted)';
+  });
+}
+
+function esc(s){ return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function hl(text){
+  if(!keyword) return esc(text);
+  const k = keyword.trim();
+  if(!k) return esc(text);
+  try{ return esc(text).replace(new RegExp('('+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<span class="hl">$1</span>'); }
+  catch(e){ return esc(text); }
+}
+
+function render(){
+  const k = keyword.trim().toLowerCase();
+  const list = WORDS.filter(w=>{
+    if(activeTiers.size && !activeTiers.has(w.t)) return false;
+    if(!k) return true;
+    const hay = (w.cn+' '+w.en+' '+w.def+' '+w.detail+' '+w.rel.join(' ')).toLowerCase();
+    return hay.includes(k);
+  });
+  // 按层排序
+  list.sort((a,b)=>a.t-b.t);
+  grid.innerHTML = '';
+  if(!list.length){ grid.innerHTML = '<div class="empty">没有匹配的名词，换个关键词或点「全部」。</div>'; }
+  list.forEach((w,i)=>{
+    const tier = tierMap[w.t];
+    const card = document.createElement('div'); card.className='card'; card.id='w'+w.id;
+    card.innerHTML = `
+      <span class="tierlabel">L${w.t} · ${tier.name}</span>
+      <div class="top">
+        <span class="tierdot" style="background:${tier.color}"></span>
+        <h3>${hl(w.cn)}</h3>
+      </div>
+      <div class="en">${hl(w.en)}</div>
+      <div class="def">${hl(w.def)}</div>
+      <div class="detail">${hl(w.detail)}</div>
+      <div class="rel"><b>关联：</b>${w.rel.map(r=>hl(r)).join(' · ')}</div>`;
+    grid.appendChild(card);
+  });
+  meta.innerHTML = `显示 <b>${list.length}</b> / ${WORDS.length} 个名词` +
+    (activeTiers.size?` · 已筛选层：${['...',...TIERS].slice(1).filter(t=>activeTiers.has(t.id)).map(t=>t.name).join('、')}`:'') +
+    (k?` · 关键词：「${esc(keyword)}」`:'');
+  totalEl.textContent = WORDS.length;
+}
+
+search.addEventListener('input', e=>{ keyword = e.target.value; render(); });
+// 给每个词加 id（用于分层图跳转）
+WORDS.forEach((w,i)=> w.id = i+1);
+syncFilters(); render();
+</script>
+</body>
+</html>

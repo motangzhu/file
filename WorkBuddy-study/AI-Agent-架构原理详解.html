@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agent 架构原理详解 · 从一次提问到任务完成的完整闭环</title>
+<style>
+:root{
+  --bg:#ffffff; --surface:#f7f7f9; --surface2:#eff0f3;
+  --text:#1a1a1f; --muted:#5f5e5a; --border:rgba(0,0,0,.11);
+  --accent:#534ab7; --warn:#993c1d; --code-bg:#f4f4f6;
+  --p-bg:#eeedfe; --p-bd:#534ab7; --p-tx:#26215c; --p-sub:#534ab7;
+  --t-bg:#e1f5ee; --t-bd:#0f6e56; --t-tx:#04342c; --t-sub:#0f6e56;
+  --b-bg:#e6f1fb; --b-bd:#185fa5; --b-tx:#042c53; --b-sub:#185fa5;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#16161a; --surface:#1e1e24; --surface2:#26262e;
+    --text:#e8e8ec; --muted:#9a9aa5; --border:rgba(255,255,255,.10);
+    --accent:#afa9ec; --warn:#f0997b; --code-bg:#1a1a20;
+    --p-bg:#3c3489; --p-bd:#afa9ec; --p-tx:#cecbf6; --p-sub:#afa9ec;
+    --t-bg:#085041; --t-bd:#5dcaa5; --t-tx:#9fe1cb; --t-sub:#5dcaa5;
+    --b-bg:#0c447c; --b-bd:#85b7eb; --b-tx:#b5d4f4; --b-sub:#85b7eb;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+  font-size:14px;line-height:1.75;-webkit-font-smoothing:antialiased}
+.layout{display:flex;gap:44px;max-width:1180px;margin:0 auto;padding:48px 32px 96px}
+nav.toc{width:196px;flex-shrink:0;position:sticky;top:48px;align-self:flex-start;
+  max-height:calc(100vh - 96px);overflow-y:auto}
+nav.toc .toctitle{font-size:12px;color:var(--muted);letter-spacing:.06em;
+  margin-bottom:12px;text-transform:uppercase}
+nav.toc a{display:block;font-size:13px;color:var(--muted);text-decoration:none;
+  padding:5px 0;line-height:1.5}
+nav.toc a:hover{color:var(--accent)}
+main{flex:1;min-width:0}
+h1{font-size:27px;font-weight:600;margin:0 0 10px;line-height:1.35;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:14px;margin:0 0 6px}
+.meta{color:var(--muted);font-size:12.5px;margin:0}
+h2{font-size:19px;font-weight:600;margin:52px 0 18px;padding-bottom:9px;
+  border-bottom:1px solid var(--border);scroll-margin-top:24px}
+h3{font-size:15px;font-weight:600;margin:30px 0 10px;scroll-margin-top:24px}
+h4{font-size:14px;font-weight:600;margin:0 0 6px}
+p{margin:0 0 12px}
+ul,ol{margin:0 0 14px;padding-left:22px}
+li{margin-bottom:6px}
+code{background:var(--code-bg);padding:2px 5px;border-radius:4px;
+  font-family:ui-monospace,Consolas,"Courier New",monospace;font-size:12.5px}
+pre{background:var(--code-bg);padding:14px 16px;border-radius:8px;overflow-x:auto;
+  font-family:ui-monospace,Consolas,"Courier New",monospace;font-size:12.5px;line-height:1.7;margin:0 0 16px}
+pre code{background:none;padding:0}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:16px 0}
+th,td{border:1px solid var(--border);padding:8px 11px;text-align:left;vertical-align:top}
+th{background:var(--surface2);font-weight:600;white-space:nowrap}
+svg{display:block;width:100%;height:auto;margin:20px 0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:14px;margin:18px 0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:15px 17px}
+.card p{font-size:13px;color:var(--muted);margin:0;line-height:1.65}
+.callout{background:var(--surface);border-left:3px solid var(--accent);
+  padding:13px 17px;margin:18px 0;border-radius:0 8px 8px 0}
+.callout p{margin:0}
+.callout p+p{margin-top:8px}
+.formula{background:var(--surface2);border-radius:10px;padding:20px;text-align:center;
+  font-size:16px;font-weight:600;margin:20px 0;letter-spacing:.01em}
+.formula span{color:var(--muted);font-weight:400;font-size:12.5px;display:block;margin-top:8px}
+.tag{display:inline-block;background:var(--surface2);color:var(--muted);
+  font-size:11.5px;padding:1px 8px;border-radius:20px;margin-left:6px;font-weight:500}
+.kbd{font-family:ui-monospace,Consolas,monospace;font-size:12px;
+  background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px}
+footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);
+  color:var(--muted);font-size:12.5px}
+@media (max-width:880px){
+  .layout{flex-direction:column;gap:24px;padding:28px 20px 64px}
+  nav.toc{position:static;width:auto;max-height:none;
+    border-bottom:1px solid var(--border);padding-bottom:16px}
+  h1{font-size:23px}
+  table{font-size:12.5px}
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav class="toc">
+  <div class="toctitle">目录</div>
+  <a href="#s1">1 · Agent 与 Chatbot 的分界</a>
+  <a href="#s2">2 · 运行时五层架构</a>
+  <a href="#s3">3 · Agent Loop：唯一的引擎</a>
+  <a href="#s4">4 · 工具调用协议</a>
+  <a href="#s5">5 · 上下文工程</a>
+  <a href="#s6">6 · 记忆系统</a>
+  <a href="#s7">7 · 规划与任务分解</a>
+  <a href="#s8">8 · 可靠性工程</a>
+  <a href="#s9">9 · 一次任务的完整时间线</a>
+  <a href="#s10">10 · 失败模式与排查</a>
+  <a href="#s11">11 · 实践清单</a>
+</nav>
+
+<main>
+
+<h1>AI Agent 架构原理详解</h1>
+<p class="sub">从一次提问到任务完成的完整闭环</p>
+<p class="meta">面向工程视角 · 不涉及具体厂商实现 · 概念可迁移到任意 Agent 产品</p>
+
+<div class="callout" style="margin-top:28px">
+  <p><strong>一句话结论：</strong>Agent 并不是"更聪明的模型"，而是<strong>用确定性代码包住一个概率性内核，再靠"执行—观察—再决策"的循环把它收敛到结果</strong>。架构里只有模型层是不确定的，其余五层都是工程问题。</p>
+</div>
+
+<h2 id="s1">1 · Agent 与 Chatbot 的分界</h2>
+
+<p>大语言模型本身是一个无状态的条件概率续写器：给它一段文本，它预测下一段最可能的文本。它不会"记得"上一秒说过什么，除非你把上一秒的内容重新放进输入里。它也不能真的打开文件、执行命令、访问网络。</p>
+
+<p>Agent 在这之上加了四样东西：</p>
+
+<table>
+  <tr><th>增量</th><th>解决什么</th><th>没有它会怎样</th></tr>
+  <tr><td><strong>工具</strong></td><td>让输出能作用于真实世界</td><td>只能说，不能做</td></tr>
+  <tr><td><strong>循环</strong></td><td>让多步任务能逐步推进</td><td>只能一步到位，做不了复杂事</td></tr>
+  <tr><td><strong>状态</strong></td><td>让每一步的结果能被下一步看到</td><td>每步都从零开始，无法累积</td></tr>
+  <tr><td><strong>停止条件</strong></td><td>让循环能收敛而不是空转</td><td>无限循环或过早放弃</td></tr>
+</table>
+
+<p>判定一个系统是不是 Agent，只看一条：<strong>它能不能自己决定"下一步做什么"，并为此承担多步执行的后果。</strong>能自动规划步骤、选择工具、根据结果调整策略——这才是 Agent。只会按预设流程调几次接口的，叫工作流。</p>
+
+<div class="formula">
+  Agent = 模型（决策）× 工具（能力）× 循环（收敛）× 上下文（状态）
+  <span>四项是乘法关系，任何一项为零，整体就退化</span>
+</div>
+
+<h3>能力上限由短板决定</h3>
+<p>Agent 的能力边界是 <code>工具集</code> 与 <code>模型判断力</code> 的交集。工具没提供的能力，模型再聪明也变不出来；模型判断不了的局面，工具再多也用不对。很多"Agent 做不到"的问题，根因在工具层缺失，而不是模型不够强。</p>
+
+<h2 id="s2">2 · 运行时五层架构</h2>
+
+<p>无论产品形态如何，Agent 的运行时都可以拆成五层。关键不在于分层的名字，而在于<strong>认清哪一层是不确定的</strong>。</p>
+
+<svg viewBox="0 0 680 460" width="100%" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>Agent 运行时的五层架构</title>
+<desc>纵向分层结构图：宿主层、编排层、模型层、工具层、记忆层。其中模型层为唯一概率性组件，其余均为确定性代码。</desc>
+<rect x="60" y="40" width="560" height="64" rx="10" fill="var(--t-bg)" stroke="var(--t-bd)" stroke-width="0.5"/>
+<text x="84" y="64" dominant-baseline="central" font-size="14" font-weight="500" fill="var(--t-tx)">宿主层 · Host</text>
+<text x="84" y="84" dominant-baseline="central" font-size="12" fill="var(--t-sub)">会话管理 · 权限审批 · 文件系统 · 界面呈现</text>
+<rect x="60" y="124" width="560" height="64" rx="10" fill="var(--t-bg)" stroke="var(--t-bd)" stroke-width="0.5"/>
+<text x="84" y="148" dominant-baseline="central" font-size="14" font-weight="500" fill="var(--t-tx)">编排层 · Orchestrator</text>
+<text x="84" y="168" dominant-baseline="central" font-size="12" fill="var(--t-sub)">上下文装配 · 循环控制 · 工具调度 · 停止判定</text>
+<rect x="60" y="208" width="560" height="64" rx="10" fill="var(--p-bg)" stroke="var(--p-bd)" stroke-width="0.5"/>
+<text x="84" y="232" dominant-baseline="central" font-size="14" font-weight="500" fill="var(--p-tx)">模型层 · Model</text>
+<text x="84" y="252" dominant-baseline="central" font-size="12" fill="var(--p-sub)">整个系统里唯一的不确定性来源</text>
+<rect x="60" y="292" width="560" height="64" rx="10" fill="var(--t-bg)" stroke="var(--t-bd)" stroke-width="0.5"/>
+<text x="84" y="316" dominant-baseline="central" font-size="14" font-weight="500" fill="var(--t-tx)">工具层 · Tools</text>
+<text x="84" y="336" dominant-baseline="central" font-size="12" fill="var(--t-sub)">文件读写 · 命令执行 · 网络检索 · MCP · 子代理</text>
+<rect x="60" y="376" width="560" height="64" rx="10" fill="var(--t-bg)" stroke="var(--t-bd)" stroke-width="0.5"/>
+<text x="84" y="400" dominant-baseline="central" font-size="14" font-weight="500" fill="var(--t-tx)">记忆层 · Memory</text>
+<text x="84" y="420" dominant-baseline="central" font-size="12" fill="var(--t-sub)">窗口内的短期记忆 · 磁盘上的长期记忆</text>
+</svg>
+
+<table>
+  <tr><th>层</th><th>职责</th><th>确定性</th><th>典型失效</th></tr>
+  <tr><td>宿主层</td><td>会话生命周期、权限审批、文件与进程沙箱、结果呈现</td><td>确定</td><td>权限卡死、路径错误</td></tr>
+  <tr><td>编排层</td><td>拼装上下文、驱动循环、调度工具、判断何时停</td><td>确定</td><td>循环失控、上下文超限</td></tr>
+  <tr><td>模型层</td><td>读上下文，产出思考、文本或结构化工具调用</td><td><strong>概率</strong></td><td>幻觉、误判、提前终止</td></tr>
+  <tr><td>工具层</td><td>提供可调用能力，返回字符串结果</td><td>确定</td><td>参数错误、输出过长</td></tr>
+  <tr><td>记忆层</td><td>短期上下文与长期文件存储、检索</td><td>确定</td><td>写了不读、读了不信</td></tr>
+</table>
+
+<div class="callout">
+  <p><strong>工程含义：</strong>既然只有模型层不确定，那么提升 Agent 可靠性的主要手段，就不是"换个更强的模型"，而是<strong>用其余四层去约束它</strong>——收紧工具权限、缩短上下文、把关键状态外置到文件、给循环加硬上限。</p>
+</div>
+
+<h2 id="s3">3 · Agent Loop：唯一的引擎</h2>
+
+<p>Agent 的全部行为都发生在一个循环里，通常被称为 ReAct 范式（Reason + Act）。拆细一点是五个阶段。</p>
+
+<div class="grid2">
+  <div class="card"><h4>1 · 接收 Intake</h4><p>宿主层把用户消息与上下文包裹拼成一次模型请求。这一阶段出错，后面全跟着偏。</p></div>
+  <div class="card"><h4>2 · 推理 Reason</h4><p>模型读完整上下文，产出内部思考，然后决定：直接回答，还是发起一次工具调用。</p></div>
+  <div class="card"><h4>3 · 行动 Act</h4><p>宿主层解析 tool_call，真正执行。执行发生在宿主侧，模型只是"请求"，不直接动手。</p></div>
+  <div class="card"><h4>4 · 观察 Observe</h4><p>工具输出（包括报错）作为一条结果消息，追加进上下文。这是模型获得新信息的唯一通道。</p></div>
+  <div class="card"><h4>5 · 判定 Decide</h4><p>编排层判断：继续循环、正常结束、还是强制中断。回到阶段 2，直到收敛。</p></div>
+</div>
+
+<h3>一次循环在协议层长什么样</h3>
+
+<p>模型不输出自然语言指令，而是输出结构化的调用请求：</p>
+
+<pre><code>// 模型输出（assistant message）
+{
+  "role": "assistant",
+  "content": null,
+  "tool_calls": [{
+    "id": "call_01",
+    "type": "function",
+    "function": {
+      "name": "Read",
+      "arguments": "{\"file_path\":\"/etc/nginx/conf.d/app.conf\"}"
+    }
+  }]
+}
+
+// 宿主执行后回灌（tool message）
+{
+  "role": "tool",
+  "tool_call_id": "call_01",
+  "content": "upstream backend { server 10.0.1.11:8080; ... }"
+}</code></pre>
+
+<p>关键点在于：<strong>结果是以普通消息的形式塞回上下文的</strong>。模型"看到"工具输出，和"看到"你说话，在机制上没有区别。这也解释了为什么错误信息同样有用——它也是一条新信息，能让模型自我纠正。前提是错误信息写得足够可行动。</p>
+
+<h3>四条停止条件</h3>
+
+<table>
+  <tr><th>类型</th><th>触发</th><th>说明</th></tr>
+  <tr><td>自然终止</td><td>模型不再请求工具，直接输出文本</td><td>最常见的正常结束</td></tr>
+  <tr><td>预算耗尽</td><td>轮数 / token / 时间到达上限</td><td>兜底机制，防止无限循环</td></tr>
+  <tr><td>外部中断</td><td>用户打断、取消、关闭会话</td><td>保留已完成的部分结果</td></tr>
+  <tr><td>不可恢复</td><td>工具连续失败、权限被拒</td><td>应立刻停下并报告，而不是重试到底</td></tr>
+</table>
+
+<h3>收敛速度取决于信息增益</h3>
+
+<p>循环不是越多越好。判断一个循环是否健康，看<strong>每一轮是否显著缩小了可能性空间</strong>。如果连续两轮的观察结果没有带来新信息，就是失控前兆——要么任务本身信息不足，要么策略需要更换。这也是为什么"先查什么"比"查得多不多"更重要。</p>
+
+<h2 id="s4">4 · 工具调用协议</h2>
+
+<p>工具是模型与外部世界的唯一接口。一套完整的协议包含四步：</p>
+
+<ol>
+  <li><strong>声明</strong>：用 JSON Schema 描述工具名、参数、用途，随请求一起发给模型。描述质量直接决定调用准确率。</li>
+  <li><strong>选择</strong>：模型根据上下文决定调用哪个工具、传什么参数。这一步是概率性的，是错误高发区。</li>
+  <li><strong>执行</strong>：宿主层校验参数、检查权限、真正执行。模型请求不等于执行发生。</li>
+  <li><strong>回灌</strong>：结果（或错误）作为消息追加进上下文，进入下一轮推理。</li>
+</ol>
+
+<h3>三条实践经验</h3>
+
+<div class="grid2">
+  <div class="card"><h4>错误信息要可行动</h4><p>与其返回 <code>Permission denied</code>，不如返回"路径不存在，请先用 Glob 确认文件名"。错误信息是模型自我纠正的唯一依据。</p></div>
+  <div class="card"><h4>工具描述要写"何时不用"</h4><p>只写能力不写边界，模型会过度调用。明确写出"仅在 X 场景下使用，Y 场景请改用 Z"能显著降低误用。</p></div>
+  <div class="card"><h4>输出必须限长</h4><p>一次返回十万字符，会把上下文瞬间撑爆。超长时应截断并提示"结果已写入文件，路径为 X"。</p></div>
+</div>
+
+<h3>权限边界</h3>
+
+<table>
+  <tr><th>级别</th><th>典型操作</th><th>处置</th></tr>
+  <tr><td>只读</td><td>读文件、列目录、查询、检索</td><td>直接执行</td></tr>
+  <tr><td>可写可逆</td><td>写新文件、改配置、提交代码</td><td>执行但保留可回滚路径</td></tr>
+  <tr><td>不可逆/高危</td><td>删除、生产变更、对外发送消息</td><td>必须先给方案，经确认再执行</td></tr>
+</table>
+
+<h2 id="s5">5 · 上下文工程</h2>
+
+<p>这是决定 Agent 表现的实际瓶颈。上下文窗口不是内存，而是<strong>注意力预算</strong>：塞得越满，模型对每条信息的关注度越低，越容易漏掉关键指令。</p>
+
+<h3>三种典型病理</h3>
+
+<table>
+  <tr><th>病理</th><th>表现</th><th>成因</th></tr>
+  <tr><td><strong>污染</strong></td><td>一个错误事实被后续轮次反复引用，越错越肯定</td><td>幻觉内容进入上下文后被当作既定事实</td></tr>
+  <tr><td><strong>分心</strong></td><td>忽略开头的关键约束，被无关细节带偏</td><td>上下文过长，注意力被稀释</td></tr>
+  <tr><td><strong>冲突</strong></td><td>在两种说法之间摇摆，无法确定</td><td>上下文里存在互相矛盾的信息源</td></tr>
+</table>
+
+<p>对应的处置：<strong>污染</strong>要尽早纠正并强制重新读取真实来源；<strong>分心</strong>靠压缩和卸载，并把关键约束放在上下文靠后的位置；<strong>冲突</strong>必须显式指定权威来源（例如"以控制台实际配置为准，文档仅作参考"）。</p>
+
+<h3>四种治理手段</h3>
+
+<svg viewBox="0 0 680 256" width="100%" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>上下文治理的四种手段</title>
+<desc>四象限卡片：卸载、压缩、检索、隔离。前两者在当前上下文内部优化，后两者改变内容进入上下文的方式。</desc>
+<rect x="60" y="40" width="272" height="88" rx="10" fill="var(--p-bg)" stroke="var(--p-bd)" stroke-width="0.5"/>
+<text x="80" y="66" dominant-baseline="central" font-size="14" font-weight="500" fill="var(--p-tx)">卸载 Offload</text>
+<text x="80" y="90" dominant-baseline="central" font-size="12" fill="var(--p-sub)">把大段输出写进文件</text>
+<text x="80" y="108" dominant-baseline="central" font-size="12" fill="var(--p-sub)">上下文里只留路径和摘要</text>
+<rect x="348" y="40" width="272" height="88" rx="10" fill="var(--p-bg)" stroke="var(--p-bd)" stroke-width="0.5"/>
+<text x="368" y="66" dominant-baseline="central" font-size="14" font-weight="500" fill="var(--p-tx)">压缩 Compact</text>
+<text x="368" y="90" dominant-baseline="central" font-size="12" fill="var(--p-sub)">把早期对话摘要成结论</text>
+<text x="368" y="108" dominant-baseline="central" font-size="12" fill="var(--p-sub)">丢掉过程，保留决策</text>
+<rect x="60" y="148" width="272" height="88" rx="10" fill="var(--b-bg)" stroke="var(--b-bd)" stroke-width="0.5"/>
+<text x="80" y="174" dominant-baseline="central" font-size="14" font-weight="500" fill="var(--b-tx)">检索 Retrieve</text>
+<text x="80" y="198" dominant-baseline="central" font-size="12" fill="var(--b-sub)">按需加载，先看目录</text>
+<text x="80" y="216" dominant-baseline="central" font-size="12" fill="var(--b-sub)">再读摘要，最后读全文</text>
+<rect x="348" y="148" width="272" height="88" rx="10" fill="var(--b-bg)" stroke="var(--b-bd)" stroke-width="0.5"/>
+<text x="368" y="174" dominant-baseline="central" font-size="14" font-weight="500" fill="var(--b-tx)">隔离 Isolate</text>
+<text x="368" y="198" dominant-baseline="central" font-size="12" fill="var(--b-sub)">子任务交给子代理去跑</text>
+<text x="368" y="216" dominant-baseline="central" font-size="12" fill="var(--b-sub)">只把结论回传主上下文</text>
+</svg>
+
+<p>四者的区别很关键：<strong>卸载和压缩</strong>是在现有上下文内部做减法，治标；<strong>检索和隔离</strong>是改变内容进入上下文的方式，治本。复杂任务优先用隔离——让子代理在独立上下文里消耗大量 token，只把结论回传主上下文，这是最有效的扩展手段。</p>
+
+<h3>装配优先级</h3>
+
+<p>上下文不是简单堆叠，而是有优先级的取舍。当空间不足时，保留顺序大致是：</p>
+
+<ol>
+  <li>当前这条用户消息（最高权重，最新指令优先）</li>
+  <li>系统约束与不可协商的安全边界</li>
+  <li>最近几轮的工具结果与观察</li>
+  <li>任务相关的记忆与结论</li>
+  <li>早期的历史对话（最先被压缩）</li>
+</ol>
+
+<h2 id="s6">6 · 记忆系统</h2>
+
+<p>模型本身不记忆，所有"记性"都来自外部存储。分三层：</p>
+
+<table>
+  <tr><th>层</th><th>载体</th><th>生命周期</th><th>容量</th><th>代价</th></tr>
+  <tr><td>短期</td><td>上下文窗口</td><td>单次会话</td><td>有限</td><td>高，占用注意力预算</td></tr>
+  <tr><td>长期</td><td>磁盘文件（如 MEMORY.md、日志）</td><td>永久</td><td>大</td><td>低，但必须主动读才生效</td></tr>
+  <tr><td>检索</td><td>索引或向量库</td><td>永久</td><td>很大</td><td>需要检索成本</td></tr>
+</table>
+
+<h3>写入时机</h3>
+
+<p>记忆不是随时都该写。合理的触发点是：<strong>得出了可复用结论</strong>、<strong>完成了阶段性工作</strong>、<strong>发现了项目约定或用户偏好</strong>、<strong>即将超出上下文上限</strong>。把过程中的琐碎中间态写进记忆，反而会污染未来的检索。</p>
+
+<h3>渐进式披露</h3>
+
+<p>记忆文件应当分层：<strong>索引层</strong>（有哪些主题）→ <strong>摘要层</strong>（每个主题的结论）→ <strong>全文层</strong>（完整过程）。加载时按需逐级下钻，而不是一次性全量灌入。这和上下文工程里的检索策略是同一套思路。</p>
+
+<h3>三种失效模式</h3>
+
+<div class="grid2">
+  <div class="card"><h4>写了不读</h4><p>结论躺在文件里，但没有任何机制在需要时去加载它。记忆文件的价值不在写入，在于被检索到。</p></div>
+  <div class="card"><h4>读了不信</h4><p>检索到的内容与模型先验冲突，模型选择相信自己的训练数据。需要在提示里显式指定权威来源。</p></div>
+  <div class="card"><h4>记了错的</h4><p>把中间态的错误结论固化进长期记忆，之后每次都被检索出来放大。记忆需要定期审计。</p></div>
+</div>
+
+<h2 id="s7">7 · 规划与任务分解</h2>
+
+<p>简单任务直接执行即可，但以下几类任务必须先规划：</p>
+
+<ul>
+  <li>步骤不少于三步，且存在依赖关系</li>
+  <li>包含不可逆操作</li>
+  <li>需要跨多个文件、系统或服务协调</li>
+  <li>中间产物需要用户确认才能继续</li>
+</ul>
+
+<h3>任务清单的三重作用</h3>
+
+<p>把计划写成一个显式的任务列表，看起来是多此一举，实际上解决三个问题：</p>
+
+<ol>
+  <li><strong>给模型一个外部状态</strong>：长任务里模型容易"忘了做到哪、还剩什么"，清单把它外置成可读取的结构。</li>
+  <li><strong>给用户进度可见性</strong>：不必等最终结果，中途就能判断方向是否跑偏。</li>
+  <li><strong>支持断点续做</strong>：失败或中断后，可以从未完成项继续，而不是整体重来。</li>
+</ol>
+
+<div class="callout">
+  <p><strong>计划模式的意义：</strong>对于高风险任务，把"先出方案、确认后再执行"作为默认，而不是"先做再说"。不可逆操作一旦执行，再好的回滚方案都不如没发生过。</p>
+</div>
+
+<h2 id="s8">8 · 可靠性工程</h2>
+
+<p>Agent 会犯错，这是架构决定的，无法消除，只能约束。可靠性设计围绕一个原则展开：<strong>任何动作都应该可落地、可验证、可回滚。</strong></p>
+
+<h3>变更四问</h3>
+
+<p>在评估任何一次变更前，按顺序回答：</p>
+
+<table>
+  <tr><th>顺序</th><th>问题</th><th>回答不了就别做</th></tr>
+  <tr><td>1</td><td>影响范围是什么</td><td>不知道波及面 → 先停下来查清</td></tr>
+  <tr><td>2</td><td>怎么回滚</td><td>回滚方案不存在 → 风险等级直接判高</td></tr>
+  <tr><td>3</td><td>具体操作步骤</td><td>步骤描述含糊 → 无法评审，也无法复现</td></tr>
+  <tr><td>4</td><td>怎么验证成功</td><td>没有验证方法 → 无法判断完成，等于没做完</td></tr>
+</table>
+
+<h3>风险分级</h3>
+
+<table>
+  <tr><th>等级</th><th>判定标准</th><th>处置</th></tr>
+  <tr><td>低</td><td>只读操作，无副作用</td><td>直接执行</td></tr>
+  <tr><td>中</td><td>改变状态但可逆</td><td>执行，但保留回滚路径</td></tr>
+  <tr><td>高</td><td>不可逆，或影响面超出单个服务</td><td>先出方案，确认后再动</td></tr>
+</table>
+
+<h3>发布类任务的五个必备要素</h3>
+
+<p>涉及服务发版时，方案里缺任何一项都不算完整：</p>
+
+<ol>
+  <li><strong>版本号</strong>——明确要发布的制品版本，可追溯</li>
+  <li><strong>灰度策略</strong>——金丝雀、分批、还是蓝绿，比例与节奏</li>
+  <li><strong>发布步骤</strong>——按序列出，每步可独立验证</li>
+  <li><strong>观测验证</strong>——看哪些指标、在什么时间窗内、达到什么阈值算通过</li>
+  <li><strong>回滚条件</strong>——触发即回滚的量化阈值，而不是"感觉不对就回滚"</li>
+</ol>
+
+<h2 id="s9">9 · 一次任务的完整时间线</h2>
+
+<p>用一个运维场景把前面所有环节串起来：用户报告"网关返回 502，帮我查一下"。</p>
+
+<table>
+  <tr><th>轮</th><th>模型判断</th><th>动作</th><th>观察</th><th>状态</th></tr>
+  <tr><td>1</td><td>信息不足，先看现象</td><td>读取用户提供的日志片段</td><td>502 集中在某时段，非全时段</td><td>继续</td></tr>
+  <tr><td>2</td><td>按链路定位，先查网关与 CLB</td><td>检查负载均衡健康检查状态</td><td>后端节点全部标记异常</td><td>收敛</td></tr>
+  <tr><td>3</td><td>问题在后端，查实例状态</td><td>查询后端服务实例列表与事件</td><td>实例出现 OOM 重启记录</td><td>收敛</td></tr>
+  <tr><td>4</td><td>需要确认根因，查监控</td><td>拉取内存监控与 GC 日志</td><td>内存持续增长，无有效回收</td><td>确认根因</td></tr>
+  <tr><td>5</td><td>信息足够，输出结论</td><td>—</td><td>—</td><td>结束</td></tr>
+</table>
+
+<p>对照闭环的五阶段：第 1 轮是<strong>接收 + 推理</strong>，发现缺信息所以不急着下结论；第 2 到 4 轮是完整的<strong>行动—观察—判定</strong>循环，每一轮都显著缩小了排查范围；第 5 轮达到自然终止条件。</p>
+
+<p>注意这个案例里<strong>没有发生的两件事</strong>：一是模型没有在第一轮就凭"502"猜测根因（避免污染）；二是每一轮的观察都带来了新信息（保证收敛）。这两点正是循环健康与否的判断标准。</p>
+
+<div class="callout">
+  <p><strong>反例：</strong>如果第 3 轮的观察是"实例状态正常"，而第 4 轮仍重复查询同样的实例，那就是零信息增益的死循环。此时正确做法不是继续循环，而是<strong>中断并更换策略</strong>——换个排查方向，或者直接要求补充信息。</p>
+</div>
+
+<h2 id="s10">10 · 失败模式与排查</h2>
+
+<table>
+  <tr><th>症状</th><th>可能根因</th><th>处置</th></tr>
+  <tr><td>反复调用同一个工具，参数几乎不变</td><td>循环零信息增益</td><td>中断，要求更换策略或补充信息</td></tr>
+  <tr><td>声称已完成，但实际没做</td><td>模型提前终止</td><td>要求逐项列出已完成的证据与路径</td></tr>
+  <tr><td>引用不存在的文件、数据或命令</td><td>上下文污染或幻觉</td><td>要求给出来源路径，重新读取真实内容</td></tr>
+  <tr><td>越做越偏，忘记最初目标</td><td>上下文分心</td><td>重开会话，把目标与约束写进文件</td></tr>
+  <tr><td>处理大段输出后开始胡说</td><td>上下文接近上限</td><td>压缩后继续，或把任务拆成子任务</td></tr>
+  <tr><td>工具报错后用同样参数反复重试</td><td>未利用错误信息</td><td>直接告诉它错误含义与正确做法</td></tr>
+  <tr><td>两个说法之间反复摇摆</td><td>上下文冲突</td><td>显式指定权威来源，以实际配置为准</td></tr>
+  <tr><td>拒绝执行某个操作</td><td>触及权限边界</td><td>确认是否属于高危操作，明确授权或换路径</td></tr>
+</table>
+
+<h2 id="s11">11 · 实践清单</h2>
+
+<h3>给使用 Agent 的人</h3>
+
+<ol>
+  <li>重要结论落成文件，不要只留在对话里——对话会压缩，文件不会。</li>
+  <li>提问时给足现场信息：报错原文、配置片段、影响范围、时间窗口。</li>
+  <li>长任务要求中途写进度文件，而不是指望上下文一直完整。</li>
+  <li>不可逆操作先要方案，确认后再让对方动手。</li>
+  <li>发现方向跑偏立刻中断，不要等它自己回头。</li>
+  <li>要求给出证据路径，而不是"我记得是这样"。</li>
+  <li>上下文快满时主动要求压缩，或拆分任务。</li>
+  <li>复杂任务拆成子任务，各自用独立上下文跑。</li>
+  <li>定期清理记忆文件里的过时结论，避免错误被反复放大。</li>
+  <li>显式指定权威来源：控制台实测 &gt; 官方文档 &gt; 推测。</li>
+</ol>
+
+<h3>给搭建 Agent 的人</h3>
+
+<ol>
+  <li>工具描述要写清"什么时候不该用"，只写能力不写边界会被过度调用。</li>
+  <li>错误信息必须可行动，这是模型自我纠正的唯一依据。</li>
+  <li>工具输出设长度上限，超长引导写入文件并回传路径。</li>
+  <li>循环必须有硬上限：轮数、token、时间，三重兜底。</li>
+  <li>只读工具与写入工具分权限，高危操作单独审批。</li>
+  <li>关键约束放在上下文靠后位置，而不是淹没在开头。</li>
+  <li>提供明确的停止信号，让模型知道何时算"做完了"。</li>
+  <li>记忆文件建索引层，支持按需下钻而不是全量加载。</li>
+  <li>子代理只回传结论，中间过程留在自己的上下文里。</li>
+  <li>记录每轮的输入输出，出问题时能完整复盘。</li>
+</ol>
+
+<footer>
+  全文围绕一条主线：Agent 的可靠性不来自模型更聪明，而来自确定性的工程结构对概率性内核的有效约束。
+</footer>
+
+</main>
+</div>
+</body>
+</html>

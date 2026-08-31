@@ -302,5 +302,3 @@ bash run-ai-gateway-cnb-deploy.sh source <TAG> <REF> <CNB_COMMIT> <ENV> <MODE>
 cd d:/jinbiCNB/saas-k8s-frontend-config/saas-frontend-deploy
 ./deploy.sh saas-frontend-saas-basic-platform:v1.0.0-prd saas-prod stable
 ```
-
-> 文档基于仓库现有脚本整理，若脚本后续变更，以代码实际内容为准。

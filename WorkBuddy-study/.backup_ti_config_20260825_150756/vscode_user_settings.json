@@ -1,0 +1,21 @@
+{
+    "typescript.locale": "zh-CN",
+    "workbench.startupEditor": "none",
+    "security.allowedUntrustedExtensions": ["anthropic.claude-code"],
+    "editor.codeActionsOnSave": {
+        
+    },
+    "yaml.schemas": {
+    "https://docs.cnb.cool/conf-schema-zh.json": ".cnb.yml",
+    "https://docs.cnb.cool/tag-deploy-schema-zh.json": ".cnb/tag_deploy.yml",
+    "https://docs.cnb.cool/web-trigger-schema-zh.json": ".cnb/web_trigger.yml",
+    "https://docs.cnb.cool/settings-schema-zh.json": ".cnb/settings.yml",
+    "https://docs.cnb.cool/code-security-conf-schema-zh.json": ".cnb/security/code_scan_config.yml"
+    },
+    "chat.fontSize": 16,
+    "window.zoomLevel": 0,
+    "workbench.iconTheme": "vscode-icons",
+    "workbench.colorTheme": "GitHub Dark Default",
+    "vsicons.dontShowNewVersionMessage": true,
+    "redhat.telemetry.enabled": false
+}
