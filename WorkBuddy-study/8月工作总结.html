@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>8月工作总结 - 大数据服务发版</title>
+<style>
+  :root{
+    --ink:#1a1d21;
+    --sub:#5a6472;
+    --line:#e3e7ed;
+    --accent:#1f6feb;
+    --bg:#ffffff;
+    --soft:#f7f9fc;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    padding:48px 32px 80px;
+    background:#eef1f6;
+    font-family:"Microsoft YaHei","PingFang SC","Helvetica Neue",Arial,sans-serif;
+    color:var(--ink);
+    line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{
+    max-width:900px;
+    margin:0 auto;
+    background:var(--bg);
+    padding:56px 64px 64px;
+    border-radius:6px;
+    box-shadow:0 1px 3px rgba(16,24,40,.08),0 12px 32px rgba(16,24,40,.06);
+  }
+  h1{font-size:30px;margin:0 0 8px;letter-spacing:.5px;font-weight:700;}
+  h2{
+    font-size:20px;margin:44px 0 16px;padding-left:12px;
+    border-left:4px solid var(--accent);line-height:1.4;
+  }
+  h3{font-size:16px;margin:30px 0 12px;color:#0f1115;}
+  p{margin:0 0 14px;}
+  ul,ol{margin:0 0 14px;padding-left:22px;}
+  li{margin-bottom:7px;}
+  strong{font-weight:600;}
+  code{
+    background:var(--soft);border:1px solid var(--line);border-radius:4px;
+    padding:1px 6px;font-family:"Cascadia Mono",Consolas,Monaco,monospace;
+    font-size:13px;color:#b3284a;
+  }
+  pre{
+    background:var(--soft);border:1px solid var(--line);border-radius:6px;
+    padding:16px 18px;overflow-x:auto;
+    font-family:"Cascadia Mono",Consolas,Monaco,monospace;
+    font-size:13px;line-height:1.7;color:#2c3440;margin:12px 0 18px;
+  }
+  table{width:100%;border-collapse:collapse;margin:14px 0 22px;font-size:14px;}
+  th,td{border:1px solid var(--line);padding:10px 13px;text-align:left;vertical-align:top;}
+  th{background:var(--soft);font-weight:600;color:#2c3440;white-space:nowrap;}
+  tbody tr:nth-child(even){background:#fcfdfe;}
+  .meta{width:100%;border-collapse:collapse;margin:0 0 8px;font-size:14px;}
+  .meta td{border:1px solid var(--line);padding:9px 14px;}
+  .meta td:first-child{background:var(--soft);width:110px;font-weight:600;white-space:nowrap;}
+  .note{
+    background:#fbfcfe;border:1px solid var(--line);border-left:3px solid #8a94a6;
+    border-radius:4px;padding:13px 18px;font-size:14px;color:#4a5364;margin:10px 0 20px;
+  }
+  .note strong{color:#2c3440;}
+  .tag{
+    display:inline-block;font-size:12px;padding:1px 8px;border-radius:10px;
+    white-space:nowrap;line-height:1.7;
+  }
+  .t-done{background:#e8f5ec;color:#1a7f37;border:1px solid #bde3c8;}
+  .t-doing{background:#fff4e5;color:#9a5b00;border:1px solid #f5dcb0;}
+  .footer{
+    margin-top:36px;padding-top:18px;border-top:1px dashed var(--line);
+    font-size:13px;color:#8a94a6;text-align:right;
+  }
+  @media print{
+    body{background:#fff;padding:0;}
+    .page{box-shadow:none;border-radius:0;padding:0;max-width:100%;}
+    h2{page-break-after:avoid;}
+    table{page-break-inside:avoid;}
+  }
+  @page{size:A4;margin:18mm 16mm;}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>8月工作总结</h1>
+
+  <table class="meta">
+    <tr><td>汇报人</td><td>赵子豪</td></tr>
+    <tr><td>入职日期</td><td>2026-08-03</td></tr>
+    <tr><td>汇报周期</td><td>2026-08-03 ~ 2026-08-31</td></tr>
+    <tr><td>工作主线</td><td>云平台与构建体系学习 → 大数据集群与服务跟进 → 发版配置模板化</td></tr>
+  </table>
+
+  <h2>一、本月工作概述</h2>
+  <p>本月为入职首个完整月，整体以<strong>熟悉环境、承接准备</strong>为主，按两条线并行推进：</p>
+  <ul>
+    <li><strong>学习线（贯穿全月）：</strong>从 8/3 开始看腾讯云产品文档，覆盖 CNB、云原生网关、CFW、WAF、主机安全组、云堡垒机、CEN、NAT、CLB、TDSQL-C MySQL、可观测平台共 11 类；第二周重点看 CNB，并结合 3 个业务仓库的流水线配置了解实际怎么构建。文档学习一直穿插在实际工作里，后面核对服务配置、抽发版模板时都在反复回看。</li>
+    <li><strong>实操线（8/19 起）：</strong>承接范围逐步收敛，由 SaaS 侧转向 TKE 大数据集群（测试 / 生产），大数据内部又从 <code>datatransfer</code> 转到拆分出来的 <code>datasink</code>（体量更小，先跑通它）。看他们怎么发版时发现，大数据这边没有命令行发版方式，是在 CNB 页面上点按钮发的，所以想照 SaaS 的模式做一套出来，转去做了<strong>发版配置模板化和部署脚本开发</strong>，目前仍在进行。</li>
+  </ul>
+
+  <h2>二、工作进展</h2>
+
+  <h3>2.1 云平台与工具链学习（贯穿全月）</h3>
+  <table>
+    <thead>
+      <tr><th>时间</th><th>学习内容</th><th>当前程度</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>8/3 起</td>
+        <td>腾讯云产品文档，覆盖 <strong>CNB、云原生网关、云防火墙 CFW、WAF、主机安全组、云堡垒机、云联网 CEN、NAT 网关、CLB、TDSQL-C MySQL、可观测平台</strong> 共 11 类</td>
+        <td>11 类完成初步浏览，了解各产品定位与控制台入口</td>
+      </tr>
+      <tr>
+        <td>第二周起</td>
+        <td>CNB 流水线配置语法、构建触发策略、云开发环境、制品库</td>
+        <td>能读懂现有流水线配置</td>
+      </tr>
+      <tr>
+        <td>8/12 起</td>
+        <td>指定的 <strong>3 个 CNB 仓库</strong>构建流水线配置</td>
+        <td>了解构建阶段划分与镜像制品产出方式；后续发版模板化工作中作为主要参考</td>
+      </tr>
+      <tr>
+        <td>8 月下旬起</td>
+        <td>结合 <code>datasink</code> 配置核对与发版模板抽取，回看 CNB 流水线配置与 K8s 部署配置</td>
+        <td>持续进行</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>2.2 大数据集群与服务跟进（8/19 起，进行中）</h3>
+  <table>
+    <thead>
+      <tr><th>时间</th><th>事项</th><th>结果 / 当前状态</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>8/19</td><td>由 SaaS 侧转入 TKE 大数据集群（测试 / 生产），了解集群拓扑、命名空间划分、工作负载类型；明确目标：<strong>先在测试环境把发版跑通</strong></td><td><span class="tag t-doing">熟悉中</span></td></tr>
+      <tr><td>8/24</td><td>服务拆分，<code>datasink</code> 从 <code>datatransfer</code> 中独立，体量更小，按优先级切换为先跑通 <code>datasink</code></td><td><span class="tag t-done">已切换，<code>datatransfer</code> 暂缓</span></td></tr>
+    </tbody>
+  </table>
+  <div class="note">
+    <strong>当前进展：</strong>集群还在熟悉阶段，没有正式接管。测试环境发版还没跑通，等模板和脚本做完一起验证；<code>datatransfer</code> 暂缓。
+  </div>
+
+  <h3>2.3 发版配置模板化与部署脚本开发（8 月下旬起，进行中）</h3>
+  <p><strong>发现的问题：</strong>看 <code>datasink</code> 怎么发版时发现，大数据这边<strong>没有命令行发版方式</strong>，是在 CNB 页面上点按钮发的。SaaS 那边用的是命令行发版，所以想照 SaaS 的模式来，把发版配置抽成模板，再写部署脚本。</p>
+  <p><strong>已开展的工作：</strong></p>
+  <ul>
+    <li><strong>抽配置</strong>：把现有配置里跟环境无关的变量抽出来（镜像制品标识、资源规格、副本数、配置映射、健康检查、环境变量等），做成统一模板；</li>
+    <li><strong>整模板</strong>：整理模板目录结构，让 <code>datatransfer</code>、<code>datasink</code> 两个服务共用一套，不用重复配；</li>
+    <li><strong>写脚本</strong>：写命令行部署脚本，串起 <code>参数校验 → 配置渲染 → 发布执行 → 结果校验 → 回滚</code>，和 SaaS 那边的命令行发版保持一致。</li>
+  </ul>
+  <p><strong>目标发版闭环：</strong></p>
+  <pre>制品标识（digest）→ 发布步骤 → 观测验证 → 回滚条件</pre>
+  <ul>
+    <li><strong>制品标识</strong>：以 digest（sha256 摘要）为准。digest 不可变，能保证跑起来的镜像和构建产物严格一致，不会像 tag 那样被覆盖导致环境不一致；发版记录里留存 digest 与版本映射。</li>
+    <li><strong>发布步骤</strong>：命令行一键执行；</li>
+    <li><strong>观测验证</strong>：发布后校验 Pod 就绪、健康检查通过、日志无异常；</li>
+    <li><strong>回滚条件</strong>：就绪失败 / 健康检查不通过 / 关键指标异常时触发，支持一键回退至上一个 digest。</li>
+  </ul>
+  <p><strong>当前状态：</strong>模板和脚本还在写，所以测试环境发版还没跑通，预计 9 月上旬完成。</p>
+
+  <h2>三、9月工作计划</h2>
+  <table>
+    <thead>
+      <tr><th style="width:36px">#</th><th>计划事项</th><th>交付物 / 验收标准</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>完成 <code>datasink</code> 测试环境命令行发版全流程验证</td><td>一次完整成功的命令行发版</td></tr>
+      <tr><td>2</td><td>定稿发版配置模板与部署脚本</td><td>模板目录 + 部署脚本入库，两个服务完成模板接入</td></tr>
+      <tr><td>3</td><td>回滚验证</td><td>完成 1 次回滚实操，记录回滚耗时</td></tr>
+      <tr><td>4</td><td>把这套命令行发版也用在 <code>datatransfer</code> 上</td><td>两个服务都能用命令行发版</td></tr>
+    </tbody>
+  </table>
+
+  <div class="footer">2026 年 8 月 · 工作总结</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="eAyTMGq0aeBZOfU3GQn6Lk">
+<head data-page-node-id="DP0Kvbx2Do6ZshT0OleGaK">
+<meta charset="UTF-8" data-page-node-id="zfHpHAewGjFy8nbLnq7sUg">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="QFXb6VvBbuUVdUcgQTxF9W">
+<title>服务路由与 Ingress：两世界概念速查</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: #f5f6f7; color: #1f2328; line-height: 1.85; font-size: 17px;
+  }
+  .page {
+    max-width: 1040px; margin: 32px auto; background: #fff;
+    padding: 60px 72px; box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    border-radius: 6px;
+  }
+  h1 { font-size: 32px; border-bottom: 3px solid #1f2328; padding-bottom: 14px; margin-bottom: 22px; }
+  h2 {
+    font-size: 24px; margin: 44px 0 16px; padding: 8px 0 8px 14px;
+    border-left: 5px solid #1f2328; background: #fafafa;
+  }
+  h3 { font-size: 20px; margin: 28px 0 10px; }
+  h4 { font-size: 18px; margin: 20px 0 8px; }
+  p { margin: 11px 0; }
+  ul, ol { margin: 11px 0 11px 28px; }
+  li { margin: 6px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 16px; }
+  th, td { border: 1px solid #d9dce1; padding: 10px 14px; text-align: left; vertical-align: top; }
+  th { background: #f0f1f3; font-weight: 600; }
+  tr:nth-child(even) td { background: #fbfbfc; }
+  code {
+    font-family: Consolas, "Courier New", monospace; font-size: 15px;
+    background: #f0f0f0; color: #24292e; padding: 2px 6px; border-radius: 4px;
+  }
+  pre {
+    background: #f6f6f6; border: 1px solid #e0e0e0; border-radius: 4px;
+    padding: 20px 24px; overflow-x: auto; margin: 14px 0;
+  }
+  pre code { background: none; padding: 0; font-size: 15px; line-height: 1.8; }
+  .meta {
+    background: #f4f5f7; border: 1px solid #e2e4e8; border-radius: 4px;
+    padding: 14px 18px; font-size: 15px; color: #444; margin: 16px 0;
+  }
+  .warn {
+    background: #fdeeee; border: 1px solid #f0c4c4; border-left: 4px solid #c43e3e;
+    padding: 14px 18px; border-radius: 3px; margin: 14px 0; font-size: 16px;
+  }
+  .warn b { color: #9b2222; }
+  .svg-wrap { max-width: 740px; margin: 20px auto; }
+  .svg-wrap svg { width: 100%; height: auto; display: block; }
+  @media print {
+    body { background: #fff; }
+    .page { box-shadow: none; margin: 0; max-width: none; padding: 20px 10px; border-radius: 0; }
+    h2 { break-after: avoid; }
+    table, pre, .svg-wrap { break-inside: avoid; }
+  }
+</style>
+</head>
+<body data-page-node-id="Ztkt3fk3aqjcrLvoTXTHk7">
+<div class="page" data-page-node-id="bW6Af4q8ZOJxJPv01m48YN">
+
+<h1 data-page-node-id="UqJ6x60TOGVDOt6zoVHowV">服务路由与 Ingress：两世界概念速查</h1>
+
+<div class="meta" data-page-node-id="HULRkzSlYUUu28LnirJ7pk">
+版本：2026-09-04 · 适用：正在熟悉 TKE 集群与 Kong 网关（TSE 托管版或自建）的对象模型，搞不清 Service / Ingress / 路由 / 服务 / 服务来源各自作用的人<br data-page-node-id="QTFszRPZkG9j165bLnJRFp">
+配套：本 HTML 内含两张链路图（K8s 世界转发链、Kong 命中链），另有同名 Markdown 版
+</div>
+
+<h2 data-page-node-id="m5j436ywg0SD8vnzkH8Pfw">0. 核心认知：你在两个世界的界面里看东西</h2>
+<table data-page-node-id="SzEWMZsqtkEHtXjydXH035">
+<tr data-page-node-id="jwNzjjQSO9Y4y2jEs027w7"><th data-page-node-id="68nL9YcppLczHZKSgwuBHR">界面</th><th data-page-node-id="YJ6bND4bawbUqCsU4KKgqG">属于哪个世界</th><th data-page-node-id="X5xemcsNUNsoV42YqcKHbJ">对象</th></tr>
+<tr data-page-node-id="3TcvrbB8RAMoH6gFk0bffN"><td data-page-node-id="GjocDEYnpt927zSDGrkHA1">TKE 集群「服务与路由」</td><td data-page-node-id="bTAuDPYVhebDiH9PtwBcs4"><b data-page-node-id="edfxI5TpqK7YncSzk9GnZV">K8s 世界</b>（集群内部）</td><td data-page-node-id="l3AAuKtEbj0jJ3iXTDL8jy">Service、Ingress 是 Kubernetes 原生对象，描述<b data-page-node-id="5zys0KC0yDpBXFxvCRga27">集群内流量怎么转发</b></td></tr>
+<tr data-page-node-id="TSF64CyEmFQoNl7Z43is7W"><td data-page-node-id="fHtmUvFLNkFR2AmbyTvr7Q">Kong 网关「服务路由」</td><td data-page-node-id="qnYFi9MyF3abHbZHGPF6Yy"><b data-page-node-id="9mFbwG1qaPq8iPjlJFm5Zg">网关世界</b>（集群外部）</td><td data-page-node-id="rLy18TVmp7fvFbvmUxQfZ4">路由、服务、服务来源是 Kong 自己的配置对象，描述<b data-page-node-id="DV9H4wyVVZyRQa2ozzlKpH">网关收到请求后转给哪个后端</b></td></tr>
+</table>
+<p data-page-node-id="zOtJ6GP4hvJOTNKDUYXhTa">两边都叫"服务 / 路由"，<b data-page-node-id="yMp4BsM7NxEWgaVH0pYJjl">但不是同一个东西</b>——同名不同物，这是所有混乱的根源。</p>
+
+<h2 data-page-node-id="QPzKTMuJALJVRVSZlFmAfc">1. K8s 世界：TKE「服务与路由」里谁在干活</h2>
+<div class="svg-wrap" data-page-node-id="eaQ23VUTxCMipPTS1nVbzO">
+<svg viewBox="0 0 680 428" width="100%" xmlns="http://www.w3.org/2000/svg" role="img" data-page-node-id="Btkl8T4j3l1AJlPuKYOPr9">
+<title>TKE 集群内 Ingress 与 Service 如何配合</title>
+<desc data-page-node-id="m4IQIhlZXMT5rWYRbhjwjC">Ingress 资源是声明，由 Ingress Controller 进程读取执行，转发到 Service 稳定入口，再负载均衡到各 Pod。</desc>
+<defs data-page-node-id="APAxTg0cKJ5eWx4myfd9U3">
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse" data-page-node-id="sEgGL7Q2RkmwUzNKinXkRC">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="hi4CccPSEnVlJrWGuZgUyP"/>
+</marker>
+</defs>
+<text x="340" y="32" text-anchor="middle" font-size="14" font-weight="500" fill="#2C2C2A" data-page-node-id="kJVDIWguLzvacDG01aGAHQ">TKE 集群里"服务与路由"到底在管什么（K8s 世界）</text>
+
+<text x="160" y="78" text-anchor="end" font-size="12" fill="#5F5E5A" data-page-node-id="UOTi1weFOZLtHoETKyl9kN">配置文件</text>
+<g data-page-node-id="o1yA0CsJhDopZQV6NDgBnE">
+<rect x="170" y="50" width="340" height="56" rx="10" fill="#FAEEDA" stroke="#BA7517" stroke-width="0.5" data-page-node-id="SOyNQpTQgP6ZIb2nigY4Hn"/>
+<text x="340" y="68" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#633806" data-page-node-id="DwQH5YMy98Mc9AGJq9DYuf">Ingress 资源（你写的规则）</text>
+<text x="340" y="86" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#854F0B" data-page-node-id="diciAz2rjxDFVDYM32hlIn">域名/路径 → 指向哪个 Service</text>
+</g>
+<line x1="340" y1="106" x2="340" y2="150" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)" data-page-node-id="EIugX4EiVcxUBY9NBxDirR"/>
+<text x="352" y="128" font-size="12" fill="#5F5E5A" data-page-node-id="hcagDANxWTdM2MPcgQR97G">谁来读取并执行这条规则？</text>
+
+<text x="160" y="178" text-anchor="end" font-size="12" fill="#5F5E5A" data-page-node-id="5KZQCUnMNVEpYviSNmA212">运行进程</text>
+<g data-page-node-id="OSffUZRYhYsE6nQDliIjQi">
+<rect x="170" y="150" width="340" height="56" rx="10" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5" data-page-node-id="OaJmIkG4t6NQA4ruJHHRHp"/>
+<text x="340" y="168" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#0C447C" data-page-node-id="BieQuja6AyzVCVmMPttebP">Ingress Controller（执行者）</text>
+<text x="340" y="186" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#185FA5" data-page-node-id="Gf87GShPj3VpE5ZFBpFWYa">真正接收流量、按规则转发的进程</text>
+</g>
+<line x1="340" y1="206" x2="340" y2="250" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)" data-page-node-id="6DvfIq9cHp4yqeLkoJoA8b"/>
+<text x="352" y="228" font-size="12" fill="#5F5E5A" data-page-node-id="gNVtH2s2mDeFqg0YniiQWO">把请求转给 Service 这个名字</text>
+
+<text x="160" y="278" text-anchor="end" font-size="12" fill="#5F5E5A" data-page-node-id="mwv1RPYYJyyuEJsm3CbWQH">配置文件</text>
+<g data-page-node-id="ohWBAA09YALuhB0bKjkpHm">
+<rect x="170" y="250" width="340" height="56" rx="10" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" data-page-node-id="sMOUk6s8bdvZM93JQweK3B"/>
+<text x="340" y="268" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041" data-page-node-id="KTxIbX5s77gwPhTr29kQKC">Service（稳定入口）</text>
+<text x="340" y="286" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56" data-page-node-id="3tD6wAA5hDt1F25GYZ1DkU">名字 + 虚拟 IP 永远不变，Pod 死了换 IP 也不怕</text>
+</g>
+<line x1="340" y1="306" x2="340" y2="350" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)" data-page-node-id="KB05PUnF1AAWEXBVqivAGJ"/>
+<text x="352" y="328" font-size="12" fill="#5F5E5A" data-page-node-id="bIDDdzmIVNkzYpfJm2OjUm">按标签把流量分发给各副本</text>
+
+<text x="160" y="378" text-anchor="end" font-size="12" fill="#5F5E5A" data-page-node-id="BQOVGnWPIjmsxulxSNkNyQ">运行进程</text>
+<g data-page-node-id="HV3InxjNkdZV1XbTcAOMQD">
+<rect x="170" y="350" width="340" height="56" rx="10" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5" data-page-node-id="rCok7dd7cId17DlXOBCf5g"/>
+<text x="340" y="368" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#444441" data-page-node-id="IycDIMdUOfTRafFVJROAiD">Pod 副本（真正干活的）</text>
+<text x="340" y="386" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#5F5E5A" data-page-node-id="SeV488Fz9C3ASAjslJh6Ao">跑着你的业务容器，可以被随时杀死重建</text>
+</g>
+</svg>
+</div>
+
+<table data-page-node-id="QgBRirpckzanLCsZyPGSrl">
+<tr data-page-node-id="KxYMOTsRKrXB0Jz0PEqkRP"><th data-page-node-id="0wxpLsQu9gA2XmEsWgSDVA">站点</th><th data-page-node-id="WCGJdNo7ylB2rwXrJli0MM">是什么</th><th data-page-node-id="zxZLCl7KUjYYOzyUCmialW">类型</th><th data-page-node-id="D8Bk0FuZx6IG8RbKkFNmiU">一句话作用</th></tr>
+<tr data-page-node-id="HNQVM6GfM5VxmAL0Mysyq4"><td data-page-node-id="qcI6G6cZTCe4PiXVJzETOz"><b data-page-node-id="6OK3SvNMc5vWvOrH0N8n8B">Ingress 资源</b></td><td data-page-node-id="db7wuqTAw6EbIDQXN3tJFu">你写的一条规则：域名/路径 → 指向哪个 Service</td><td data-page-node-id="jJ4BIHdFK8uZkjd7gS9k4U">配置文件</td><td data-page-node-id="eFQdj5HTolvxOoWWp790cb">只是一张"规则纸"，<b data-page-node-id="fpapODt9l5Y27wWDjBP7Dg">自己不转发</b></td></tr>
+<tr data-page-node-id="j4B3f2yox2BGuxYLh3Z6N0"><td data-page-node-id="FNpPwOXoY1b5LIPEwRboDk"><b data-page-node-id="DiyXHFpGNrmFKEfKcgTAP4">Ingress Controller</b></td><td data-page-node-id="YdEHkUIS5qyxqjwzp4gj9c">集群内真正接收流量、按 Ingress 规则转发的进程</td><td data-page-node-id="ptxir6Hbf4dzhOy6bBhDVr">运行进程</td><td data-page-node-id="qn2XsmTAF6ctZoyrcufOmf">规则的实际执行者（TKE 里 = CLB 型控制器 / Nginx Ingress / 其他）</td></tr>
+<tr data-page-node-id="Hygy1KAI4hZbhi9mCBPYg8"><td data-page-node-id="Waaavh900q6te96K8UwCRl"><b data-page-node-id="BbQASqEACIiB6apEhTdkfL">Service</b></td><td data-page-node-id="8J068RlOBVpJemsAypsNvF">一组 Pod 的稳定入口</td><td data-page-node-id="KE2QifVJMTdbPn5tPifHB8">配置文件</td><td data-page-node-id="NpdS6zHtgYXDdabfyP4Eew">名字 + 虚拟 IP 恒定，Pod 死了换 IP 也不影响访问；按 SELECTOR 标签认 Pod，均衡分发到各副本</td></tr>
+<tr data-page-node-id="lGSj2dNpBlElGmNDFECRxk"><td data-page-node-id="apQZMCOsJ7EolVUt96vHYO"><b data-page-node-id="lnjEHDYoApBRXJNPkAvoQr">Pod</b></td><td data-page-node-id="tFYVuCFgZpjLF2R8vxwb7P">跑业务容器的副本</td><td data-page-node-id="D6iZVIdUwkvud01XLgWKsT">运行进程</td><td data-page-node-id="cFGTtJAb0Ih0LSHD2GAJ0E">真正干活的，可以被随时杀死重建</td></tr>
+</table>
+<p data-page-node-id="NFGjmUvLHdovrJJ2lLNDN2">记忆点：<b data-page-node-id="fG1Y69mjssjnwDMXRomCxN">Ingress 是声明，Controller 才是执行者</b>——Ingress 资源没有 Controller 读它，就是一张废纸。<b data-page-node-id="yf14yCpue0spBbmSGQkgqF">Service 的作用是抗 Pod 死亡</b>——谁要访问这组 Pod，只认 Service 这个名字。判断"集群用了哪种 Ingress"：看集群里跑的是哪个 Ingress Controller（<code data-page-node-id="r0D7JHLFeH2mW37BhvvN7v">kubectl get ingressclass</code> / <code data-page-node-id="HRTbGYrih1TCl7g5AWSBvT">kubectl get deploy -A | grep -i ingress</code>）。</p>
+
+<h2 data-page-node-id="fc6aZ5aR2I0JvrfOWRQcGw">2. 网关世界：Kong「服务路由」三件套</h2>
+<div class="svg-wrap" data-page-node-id="GKWhqGCHVaZVAdgHIGddsW">
+<svg viewBox="0 0 680 438" width="100%" xmlns="http://www.w3.org/2000/svg" role="img" data-page-node-id="bR58Lgxic3t1RntbtPg7Ut">
+<title>Kong 网关里路由、服务、服务来源的请求命中顺序</title>
+<desc data-page-node-id="OCk8ycyG1p3RpbYBfadEhl">客户端请求先按路由的 host 与 path 匹配，命中后转给对应的服务，服务再去服务来源发现的后端真实地址做负载均衡。</desc>
+<defs data-page-node-id="3KEgLiisijrfkmjqWfp7R8">
+<marker id="arrow2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse" data-page-node-id="DI97Ksyg96sNpetKQhWbTE">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="BSaNX87lMXzsFeg6HALVqb"/>
+</marker>
+</defs>
+<text x="340" y="32" text-anchor="middle" font-size="14" font-weight="500" fill="#2C2C2A" data-page-node-id="EqOy9CgAEoA7lc44bhqQfF">Kong "服务路由"三件套：请求的命中顺序</text>
+
+<text x="158" y="90" text-anchor="end" font-size="12" fill="#5F5E5A" data-page-node-id="gqacvVqWfDJELCflMCfr0V">菜单：路由</text>
+<g data-page-node-id="JBbNDI0wgDeAiIDdJieGTn">
+<rect x="170" y="62" width="340" height="56" rx="10" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5" data-page-node-id="VSdiTN4BspfyaLFjcXuCQl"/>
+<text x="340" y="80" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#0C447C" data-page-node-id="LhgjiixRB5Xi9vurh0Kep4">① 路由 Route（入口匹配规则）</text>
+<text x="340" y="98" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#185FA5" data-page-node-id="xn5hZFfvBJ3EsLBMpSM0tm">host / path / header 不匹配 → 直接 404</text>
+</g>
+<line x1="340" y1="118" x2="340" y2="162" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow2)" data-page-node-id="sGCrH5od4GUl3hPQk45t9G"/>
+<text x="352" y="140" font-size="12" fill="#5F5E5A" data-page-node-id="lvI88m3gzCdqBTb7BbSHx5">匹配上了 → 转给绑定的服务</text>
+
+<text x="158" y="190" text-anchor="end" font-size="12" fill="#5F5E5A" data-page-node-id="nkGfrXzWHIvRrSzusSXm2R">菜单：服务</text>
+<g data-page-node-id="u4VvZ4m8ecreRhcqO7Po3u">
+<rect x="170" y="162" width="340" height="56" rx="10" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" data-page-node-id="xxTHNqinov8VeZ9Ao6qaXL"/>
+<text x="340" y="180" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#085041" data-page-node-id="cZC6CmWy2oyMi0kqfhHHlp">② 服务 Service（后端抽象）</text>
+<text x="340" y="198" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#0F6E56" data-page-node-id="UoT8rXbgNlcY75i0KBf1MZ">定义协议/超时/重试，指向一个后端组</text>
+</g>
+<line x1="340" y1="218" x2="340" y2="262" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow2)" data-page-node-id="NxBv5k7nFfZCM0kbBK47mQ"/>
+<text x="352" y="240" font-size="12" fill="#5F5E5A" data-page-node-id="LV98VjM9Out1FztgGCmBYu">服务要连后端 → 问服务来源要地址</text>
+
+<text x="158" y="290" text-anchor="end" font-size="12" fill="#5F5E5A" data-page-node-id="igU7HPqHDZAKwsiSE22DZ3">菜单：服务来源</text>
+<g data-page-node-id="ttRXjV83sm2ojcZ8m9ghYY">
+<rect x="170" y="262" width="340" height="56" rx="10" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5" data-page-node-id="nwCAfqW3Z76c0A8XqlMixb"/>
+<text x="340" y="280" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#3C3489" data-page-node-id="D1krLGkYMAub6hhnBq0g7M">③ 服务来源（后端从哪发现）</text>
+<text x="340" y="298" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#534AB7" data-page-node-id="eLsjAPAk8Yv3Ysu8zcDHEf">K8s 集群 / Nacos / 静态 IP，三种来源</text>
+</g>
+<line x1="340" y1="318" x2="340" y2="362" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow2)" data-page-node-id="w2tE0u2AUwMficAl27HFqO"/>
+<text x="352" y="340" font-size="12" fill="#5F5E5A" data-page-node-id="ZTsAvkoDXWCxqDe3pfWKCC">来源解析出真实后端 → 网关做负载均衡</text>
+
+<text x="158" y="390" text-anchor="end" font-size="12" fill="#5F5E5A" data-page-node-id="YEXSwIldMuIej2zDI9p60U">落点</text>
+<g data-page-node-id="PMEb6V5thjAzz1RjBDTW3I">
+<rect x="170" y="362" width="340" height="56" rx="10" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5" data-page-node-id="d17LnsEhWEfRNn7PJlxWPc"/>
+<text x="340" y="380" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#444441" data-page-node-id="Dc8PFQFqfiQHgdnJByoYil">后端实例（K8s Service→Pod / Nacos 实例）</text>
+<text x="340" y="398" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#5F5E5A" data-page-node-id="AHD8827QO7EJjgCi8BBp2e">最终处理请求的地方，不在 Kong 里</text>
+</g>
+</svg>
+</div>
+
+<table data-page-node-id="BGH1RYrV2psqYu1R3c6Go6">
+<tr data-page-node-id="QhTXrADw0GoDGhhieSxuNC"><th data-page-node-id="7m91xB4Rh55tuEk84U2r9r">菜单</th><th data-page-node-id="ujAldYjDwisBTQd467R7N6">对应 Kong 对象</th><th data-page-node-id="rFNFczNSBMExtqPBzfRirq">一句话作用</th><th data-page-node-id="nLDHrzxrNueU4QFaMeSRjB">看什么</th></tr>
+<tr data-page-node-id="xvY8XEO8vqDlnTkhV2xxHa"><td data-page-node-id="37nYtR1Q8Z1CXd0MAaiBn8"><b data-page-node-id="wvH65xWzDJtSbuJerfLsrG">路由</b></td><td data-page-node-id="ablGEqvzBQHmQFd7gv4kQT">Route</td><td data-page-node-id="E8wDDDUc5eUlovRRDrBDZT"><b data-page-node-id="gryUE6aASOQjbRDQ2zJMuF">入口匹配规则</b>：host / path / header 满足才放行，不匹配直接 404</td><td data-page-node-id="jE15asqDW3ANYbvBjPJvFC">协议、host、路径、是否 HTTPS、指向哪个服务</td></tr>
+<tr data-page-node-id="pBfjKvplYty3fakvUZvWtl"><td data-page-node-id="twVBOipved0prJKvagJeqj"><b data-page-node-id="n8mITpIEmHM1vBzTYF2Nmi">服务</b></td><td data-page-node-id="cHa0fDx91mXQmI8idUKaKo">Service</td><td data-page-node-id="czsnvwGpSWgqbhYIKvpGez"><b data-page-node-id="1do5ckNGMrxEYrh9TlmUrt">后端抽象</b>：这个逻辑后端连谁、用什么协议、超时多久、重试几次</td><td data-page-node-id="fvDaNeWdwNSaA2HStscEuJ">绑定的服务来源、后端地址/名称、端口</td></tr>
+<tr data-page-node-id="ME6OHRirTbUYJIfifS2yZA"><td data-page-node-id="ixMCR5CVxAPh2SFxyCAC2a"><b data-page-node-id="El2EUYu5nXPivJn31LAtKU">服务来源</b></td><td data-page-node-id="lqivWnVLE8aBHqXlZlDD7E">Upstream / 来源插件</td><td data-page-node-id="POD2PsOMVkS8KJeHqbIWE5"><b data-page-node-id="ZLtlVmLqcLjCYEzvh5MVbc">后端从哪发现</b>：K8s 集群（按命名空间 + Service 名发现）、Nacos、静态 IP</td><td data-page-node-id="lg40ZSuf1OJP1g6E9NaMeG">关联的集群、命名空间、健康检查</td></tr>
+</table>
+<p data-page-node-id="1uSJ2f4hrzxzopO3THIabx">⚠️ 注意：菜单从上到下是「路由 / 服务 / 服务来源」，<b data-page-node-id="VlFBd0nFkYqtd1gz5frZUT">不等于请求命中顺序</b>。请求实际是<b data-page-node-id="ARa7twjpdoXEqw8uDARiK5">从路由进、经服务、落到服务来源发现的后端</b>——别被菜单顺序误导。</p>
+<p data-page-node-id="GnstyNxqwjHSN6VPnXtPpR">实际作用一句话：<code data-page-node-id="tuqyCvdkPLXldOhnWinXtC">服务来源</code>告诉网关"后端机器在哪找"，<code data-page-node-id="DaPBdpBv0FhC47DAm9vYR6">服务</code>把一组后端包成逻辑后端，<code data-page-node-id="TbdR2kHIOW7CopEHEruhf9">路由</code>决定"什么请求转给这个逻辑后端"。三层合起来才构成一个完整转发入口。</p>
+
+<h2 data-page-node-id="52dC3GzF0VYHIFZmSI8zgn">3. 同名不同物：对照表</h2>
+<table data-page-node-id="bOAUiv7Z9QPoeQ0v7JPnsZ">
+<tr data-page-node-id="yErEihFh1zDqIZuDXHwvrc"><th data-page-node-id="AO0Jgr0fZ61AkAGfdOOjcT">概念</th><th data-page-node-id="fKLvF07a0OeCEydtOPCo1T">K8s 世界</th><th data-page-node-id="zMRnNXAS7o6NzAiiwQOO5G">Kong 网关世界</th></tr>
+<tr data-page-node-id="dUxHBF73hzCJKhtq9MlZIl"><td data-page-node-id="uZHjJF6ffVST5KAng5TLxq">入口规则</td><td data-page-node-id="Dmw097kJgqICCVq4wLIBSP">Ingress 资源（由 Ingress Controller 执行）</td><td data-page-node-id="9IBlaoBF6QEohN2OZPjuTV">路由 Route</td></tr>
+<tr data-page-node-id="CJWhDmJ4uuMX9DJC6DykeG"><td data-page-node-id="EfF29gxkmvh6bGjvE9yoqW">后端抽象 / 稳定入口</td><td data-page-node-id="nttUG1W2XkAD3GiLeA4c3D">Service（按标签认 Pod）</td><td data-page-node-id="E1RDf4wkgBuTozEPWkMRJn">服务 Service（绑服务来源）</td></tr>
+<tr data-page-node-id="q5F60paj3YURa8ARFzhPbq"><td data-page-node-id="36Ssrq1JBvw5mtCadDskYt">后端发现</td><td data-page-node-id="DJqtHpSu9KGctGrrxNrHUQ">集群内天然按 SELECTOR 发现</td><td data-page-node-id="dZNlyJLGu5FGayiQ9aGGWk">服务来源（K8s / Nacos / 静态）</td></tr>
+</table>
+
+<h2 data-page-node-id="kvnXexU1TeYGBEHeuKAHU1">4. 为什么「Kong 里的 Ingress 没用到」——完全正常</h2>
+<p data-page-node-id="68gsMstYfru6Qg5DBH9Lg7">Kong 对接 Kubernetes 有<b data-page-node-id="oTsGW29gxeRfYPGgslBctf">两条路，二选一</b>：</p>
+<p data-page-node-id="JmB1fYDPtS6M45U0l6lOYW"><b data-page-node-id="evrJ8GsXgZbcUCnIv6bjyq">路线 A：服务来源模式（多数场景在用）</b><br data-page-node-id="rT6tTFVRfhDGuFZDZZpJDX">
+控制台「服务来源」关联 TKE 集群 → 建「服务」时选集群里的 Service → 建「路由」配域名路径。<br data-page-node-id="wh6ETJop56oLn3R8eue3GG">
+→ 配置全部在 Kong 控制台完成，<b data-page-node-id="n75daYESfLvUQmAwbykS8k">K8s 集群里的 Ingress 资源 Kong 根本不看</b>。所以"Kong 的 Ingress 功能空置"不是漏配，是这条路不需要它。</p>
+<p data-page-node-id="GbbAVVeLKmVF3UnEpzFpF5"><b data-page-node-id="Ot1533DEIY4T9IBduSeFFN">路线 B：KIC 模式（Kong Ingress Controller）</b><br data-page-node-id="0W45H83sxBCet2W3MR5mvA">
+把 Kong 关联为集群的 Ingress Controller → 在 K8s 里写 Ingress 资源（<code data-page-node-id="y9ySZutGQ6kETLWDN7KtMr">ingressClassName: kong</code>）→ Kong watch 并自动生成路由/服务。<br data-page-node-id="8iFwhwpx5kp1JnAIfY7GHY">
+→ 此时才用到 Kong 的 Ingress 功能，配置源头在 K8s 侧。</p>
+<h3 data-page-node-id="uLgA1RJMgKleGmvFOz2eo0">现象对照（典型场景）</h3>
+<table data-page-node-id="EFPDZmmr1QOenyPQDe7XQ7">
+<tr data-page-node-id="ERuwO6W6O2EttDW4Fuenc3"><th data-page-node-id="Mw2trTqrM0HuCTwhAHZud4">观察</th><th data-page-node-id="yHdxFxYluNkcZ4r9JXMxoY">含义</th></tr>
+<tr data-page-node-id="A0Z1SygxEvH86uZCwYeOKX"><td data-page-node-id="9uorCTL3rfhuVOUajFbTpn">Kong「服务路由」三个菜单都有东西</td><td data-page-node-id="BzMvH2O7mkwRYXdZj7077W">走了<b data-page-node-id="qdBBWZYpTrpYXEEYjSgwOk">路线 A</b>，Kong 是独立网关，自带配置在管理流量</td></tr>
+<tr data-page-node-id="842jFL71K7QE0O4Ru3siGY"><td data-page-node-id="vznKTgEoW553oFvgQ8VmEt">Kong 的 Ingress 没用到</td><td data-page-node-id="WwNeB2p98tF8fpsBa0NXWE">没启用 KIC（路线 B）——<b data-page-node-id="AI7Is6LAKkEASmTKwS6pHh">正常，两条路线二选一</b></td></tr>
+<tr data-page-node-id="GTtCJRQFjwMPLxo8CrzlGa"><td data-page-node-id="jpaWC0TXOzuGNVb83cSJK6">TKE 集群的 Service / Ingress 都有用到</td><td data-page-node-id="6VIWOrsy2GTsxQrOBQsgTt">集群<b data-page-node-id="BUMzXd8X0tBIpHVES7iWnt">自己的</b>入口链路（CLB 型或 Nginx Ingress → Service → Pod）在工作，<b data-page-node-id="TRTcK3sf9KPQs2Bd67Dz2l">和 Kong 是两套并行的体系</b></td></tr>
+</table>
+<div class="warn" data-page-node-id="Lwlvm0LWE7FLlWvBZ8Dco0"><b data-page-node-id="1pBzF9blz7ncLHtGAM1SHh">推论（重要）：</b>路线 A 下 <b data-page-node-id="G9Zorpy2tZCGCfhr5NwCb5">Kong 不 watch 业务集群的 Ingress</b>。所以"业务集群的 Ingress 由谁执行"，要看业务集群里跑的是哪个 Ingress Controller，而不是 Kong。这两件事别混成一个。</div>
+
+<h2 data-page-node-id="r39HyDyldpqdjiJ5dfmHMp">5. 怎么看才能记住：三问框架</h2>
+<p data-page-node-id="EGO0M9Glb3lt5Q8veybrG0">看任何对象（无论 K8s 还是 Kong），只问三件事：</p>
+<ol data-page-node-id="eZBmAGTK3T2cGDNQbW9BVW">
+<li data-page-node-id="tvA1hYygJRANiOCezfd1wu"><b data-page-node-id="WMKctkOCdLX0GQMP2NgYOe">它在请求链路哪一段？</b> 入口规则？后端抽象？稳定地址？——对号入座到第 1、2 节的站点。</li>
+<li data-page-node-id="OyKiqChOZveilkNIm1paG6"><b data-page-node-id="eHIyBwFlqDaTPhf04GsImH">谁创建它？</b> K8s YAML / 控制台手点 / 别的控制器自动生成——来源决定你该去哪改。</li>
+<li data-page-node-id="AlDE40ovbTUqYxHG498KyO"><b data-page-node-id="as6p2PafUgIEHT3g1cGJf0">流量穿过它之后去了哪？</b> 看它的"指向字段"，顺着指向继续追。</li>
+</ol>
+<p data-page-node-id="NlzCv60TrhVayBRcwlIA51">控制台里每条记录都有指向字段（Ingress 的 BACKEND、Kong 路由的"指向服务"）。<b data-page-node-id="vqwUEKejLBgHFjSp0PqGTK">顺着指向一路点下去，就是在重放请求旅程</b>——看"进去了"的标志，是看到一条记录就下意识想追它的下一跳。</p>
+
+<h2 data-page-node-id="tT1zOgQ0JlUWwOvLDZgvXL">6. 动手追链（最快固化，逐条手敲）</h2>
+<p data-page-node-id="gsfpxk4EWIVzvMXk9YfjnR">选一条真实链路，三步走完（假设已切到目标集群与命名空间）：</p>
+<pre data-page-node-id="ziaGgBSxRu7BcWNNsGMIN2"><code data-page-node-id="TyxlwCqoNiSSnj5M7gfzfL">kubectl get ingress -A -o wide</code></pre>
+<p data-page-node-id="HucmJytaQIQixqE01Et1ja">看 <code data-page-node-id="vJ2JtfqrI58O2B1tPeuG7O">HOSTS</code> / <code data-page-node-id="bZLn44oGwPICyxr2HQcKWG">PATH</code> / <code data-page-node-id="KaEY7XmF7UsbbnBoynQrHj">BACKEND</code> 三列 = 第 1 站。挑一条认识的，记下 BACKEND 是哪个 Service。</p>
+<pre data-page-node-id="FBi0dOTNIaE1ravjRvM92F"><code data-page-node-id="1NAl6iAVRggkCKyQ3txdWn">kubectl -n &lt;命名空间&gt; get svc &lt;上一步的backend名&gt; -o wide</code></pre>
+<p data-page-node-id="L2rpuDLKGA6uZfd8PkGeB5">看 <code data-page-node-id="sCfGDd599AQ4kK0lszynKV">SELECTOR</code> 和 <code data-page-node-id="AYgvCbkrb0FLb4bNjyiZ2e">CLUSTER-IP</code> = 第 2 站。Service 靠 SELECTOR 认 Pod——这就是"名字稳定、按标签分发"的实锤。</p>
+<pre data-page-node-id="cafvsqLCUl2uLkIjNL86fQ"><code data-page-node-id="TOyXPzSxoeGNM0AEBZRwhB">kubectl -n &lt;命名空间&gt; get pods -l &lt;上一步的SELECTOR内容&gt; -o wide</code></pre>
+<p data-page-node-id="8V2Aw1OACcOb0AuC46R9gB">第 3 站：看到真正跑业务的几个 Pod 副本。</p>
+<p data-page-node-id="69aRUIQ86NvT06XfxoOg22">三步 = 一次完整旅程重放：<b data-page-node-id="IRvGdBzVgV9yekd1fBbxue">Ingress(规则) → Controller(隐含执行者) → Service(稳定入口) → Pod(干活)</b>。Kong 侧同理：挑一条路由 → 看指向的服务 → 点进服务看绑定的服务来源与后端。</p>
+
+<h2 data-page-node-id="dloElTyST4GEkCMVZAHzaX">7. 一句话总记</h2>
+<ol data-page-node-id="S1Fk81vByXJEwxqKgoeOx3">
+<li data-page-node-id="ghbGzra1laBLM3XcDoTpNn"><b data-page-node-id="76Kt40Wx0TvClC2wECBwyw">Ingress 是规则纸，Controller 是执行者，Service 是稳定入口，Pod 是干活的。</b></li>
+<li data-page-node-id="Wasm9UJgVtOGFiELNCS8Hz"><b data-page-node-id="SaBGznYo9fWsH7zFbmnteu">Kong 服务路由：路由是门禁，服务是路线图，服务来源是通讯录。</b></li>
+<li data-page-node-id="QzR3lr5p05nhMMYgEa8tM7"><b data-page-node-id="2AG6A3D5OzGAcdmECqWv9j">两套体系并行，别用"Kong 的 Ingress 空置"判断"集群 Ingress 失效"。</b></li>
+</ol>
+
+</div>
+</body>
+</html>

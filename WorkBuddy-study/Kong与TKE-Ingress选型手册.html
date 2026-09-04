@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kong 与 TKE Ingress 选型手册</title>
+<style>
+:root{
+  --bg:#1a1b1e; --bg2:#222428; --bg3:#2a2c31;
+  --fg:#e4e5e7; --fg2:#a8abb0; --fg3:#7c8086;
+  --line:#34373c;
+  --blue:#6ba7e8; --teal:#4fc3a1; --amber:#e8a33d; --red:#e8756b; --purple:#a99cf0;
+  --code-bg:#15161a;
+}
+@media (prefers-color-scheme: light){
+  :root{ --bg:#fbfbfa; --bg2:#f3f3f1; --bg3:#eceae6; --fg:#22242a; --fg2:#5c6068; --fg3:#868a92;
+    --line:#e0ded9; --blue:#185fa5; --teal:#0f6e56; --amber:#854f0b; --red:#a32d2d; --purple:#534ab7;
+    --code-bg:#f4f4f2; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.75}
+.wrap{display:flex;max-width:1180px;margin:0 auto;padding:0 24px}
+nav{position:sticky;top:0;align-self:flex-start;width:210px;flex-shrink:0;
+  padding:32px 16px 32px 0;max-height:100vh;overflow-y:auto}
+nav a{display:block;color:var(--fg2);text-decoration:none;font-size:13px;
+  padding:5px 10px;border-left:2px solid transparent}
+nav a:hover{color:var(--fg);border-left-color:var(--blue)}
+nav .nt{color:var(--fg3);font-size:11px;letter-spacing:.08em;margin:18px 0 6px;padding-left:10px}
+main{flex:1;min-width:0;padding:32px 0 96px}
+h1{font-size:26px;font-weight:600;margin:0 0 8px;letter-spacing:-.01em}
+h2{font-size:19px;font-weight:600;margin:48px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+h3{font-size:16px;font-weight:600;margin:28px 0 10px}
+h4{font-size:14px;font-weight:600;margin:20px 0 8px;color:var(--fg2)}
+p{margin:10px 0}
+ul,ol{margin:10px 0;padding-left:22px}
+li{margin:5px 0}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;
+  background:var(--bg3);padding:1px 5px;border-radius:4px}
+pre{background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:14px 16px;overflow-x:auto;margin:14px 0}
+pre code{background:none;padding:0;font-size:12.5px;line-height:1.65}
+table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13.5px}
+th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+th{background:var(--bg2);font-weight:600}
+tbody tr:nth-child(even){background:var(--bg2)}
+.callout{border-left:3px solid var(--blue);background:var(--bg2);
+  padding:12px 16px;margin:16px 0;border-radius:0 6px 6px 0}
+.warn{border-left-color:var(--amber)}
+.danger{border-left-color:var(--red)}
+.ok{border-left-color:var(--teal)}
+.callout p:first-child{margin-top:0}.callout p:last-child{margin-bottom:0}
+.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:10px;
+  border:1px solid var(--line);color:var(--fg2);margin-left:6px;vertical-align:middle}
+.t-red{color:var(--red);border-color:var(--red)}
+.t-amber{color:var(--amber);border-color:var(--amber)}
+.t-green{color:var(--teal);border-color:var(--teal)}
+.lead{color:var(--fg2);font-size:15px;margin-bottom:24px}
+.meta{color:var(--fg3);font-size:12.5px;margin-bottom:32px}
+a{color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav>
+  <div class="nt">结论</div>
+  <a href="#s0">先看四条结论</a>
+  <div class="nt">TKE 侧</div>
+  <a href="#s1">1. TKE Ingress 四条路线</a>
+  <a href="#s2">2. CLB Ingress 要点</a>
+  <a href="#s3">3. Nginx Ingress 现状</a>
+  <div class="nt">Kong 侧</div>
+  <a href="#s4">4. Kong 是什么</a>
+  <a href="#s5">5. 对象模型</a>
+  <a href="#s6">6. 部署模式与插件</a>
+  <a href="#s7">7. 版本与兼容矩阵</a>
+  <a href="#s8">8. Ingress → Gateway API</a>
+  <div class="nt">腾讯云</div>
+  <a href="#s9">9. 云原生网关 Kong × TKE</a>
+  <div class="nt">落地</div>
+  <a href="#s10">10. 选型决策</a>
+  <a href="#s11">11. 发布与回滚方案</a>
+  <a href="#s12">12. 配置片段</a>
+  <a href="#s13">13. 排查清单</a>
+  <a href="#s14">14. 参考来源</a>
+</nav>
+<main>
+
+<h1>Kong 与腾讯云 TKE Ingress 选型手册</h1>
+<p class="lead">面向 TKE 生产集群的接入层选型：把 TKE 的四条 Ingress 路线、Kong 的能力边界、以及腾讯云托管 Kong 与开源 KIC 的差异一次讲清。</p>
+<p class="meta">整理时间 2026-09-03 · 结论基于腾讯云官方文档与 Kong 官方 支持策略页，文中标注了需要你二次核验的点。</p>
+
+<h2 id="s0">先看四条结论</h2>
+
+<div class="callout">
+<p><strong>1. TKE 上的 Ingress 不是一种技术，是四条路线。</strong>应用型 CLB（默认，<code>ingress.class: qcloud</code>）、Nginx Ingress（扩展组件 <strong>已停止维护</strong>）、云产品托管（API 网关 / 云原生网关 Kong）、Others（自建 Kong/APISIX/Traefik，自定 IngressClass）。选型的本质是在「运维成本」和「路由/治理能力」之间取点。</p>
+</div>
+
+<div class="callout warn">
+<p><strong>2. 2026 年最大的变量是 Nginx Ingress 退役，这事已经过了讨论期。</strong>上游社区 <code>ingress-nginx</code> 于 2025-11 宣布退役，best-effort 维护持续到 <strong>2026-03</strong>，之后归档，不再有 release、bugfix 和安全补丁。TKE 的 NginxIngress 扩展组件也已<strong>停止版本更新和维护</strong>，官方明确「兼容性不受影响，但需自建或走应用市场」。继续用 = 自己承担 CVE 风险。</p>
+</div>
+
+<div class="callout">
+<p><strong>3. Kong 在腾讯云上有两种落法，差别是「控制面归谁运维」，不是功能多少。</strong>形态 A 用腾讯云云原生网关（TSE/TSF 托管，内核为开源 Kong，兼容 Kong 3.x），网关实例在集群外；形态 B 是在 TKE 集群内用 Helm 自建 Kong Ingress Controller（KIC），数据面是集群里的 Pod。</p>
+</div>
+
+<div class="callout danger">
+<p><strong>4. 两个必须核验的硬约束。</strong>其一，云原生网关（含 Kong 形态）<strong>目前仅对微服务场景开放白名单新购</strong>，即作为 Polaris（北极星）服务接入层的场景，其余场景不支持新接入，非支持场景控制台会重定向到北极星控制台。其二，托管版 Kong Ingress Controller 官方文档列出的支持版本仍是 <strong>2.7.0 / 2.5.0 / 1.3.4</strong>，与开源主线 3.5.x 差距明显 —— 这直接决定你能不能用上新版插件和 Gateway API 能力。<span class="tag t-red">高风险</span></p>
+</div>
+
+<h2 id="s1">1. TKE Ingress 四条路线</h2>
+
+<table>
+<thead><tr><th style="width:16%">路线</th><th style="width:20%">控制器 / 数据面</th><th style="width:32%">特点</th><th style="width:32%">适用场景与代价</th></tr></thead>
+<tbody>
+<tr>
+<td><strong>应用型 CLB</strong><br><code>qcloud</code></td>
+<td>TKE Ingress Controller + 腾讯云 CLB（集群外托管）</td>
+<td>不写 <code>ingress.class</code> 或写 <code>qcloud</code> 即由它接管。<strong>一条 Ingress 绑定一个 CLB 实例（一个 IP）</strong>。CLB 经 NodePort 转发到 Pod；集群支持 VPC-CNI 时可直连 Pod。</td>
+<td>简单七层路由、对 IP 收敛不敏感的场景。<strong>代价</strong>：路由一多，CLB 实例数量和公网 IP 数量线性增长，成本和管理成本都上去了。</td>
+</tr>
+<tr>
+<td><strong>Nginx Ingress</strong></td>
+<td>CLB + 集群内容器化 nginx</td>
+<td>CLB 之后多一层 nginx 代理，通过 Annotation 扩展原生 Ingress。<strong>IP 收敛</strong>：多个 Ingress 共用一个 CLB。</td>
+<td>需要较复杂路由规则且要收敛 IP。三种部署方案中官方推荐 <code>Deployment + LB 直连 Pod</code>（性能好、免人工维护 CLB），<strong>前提是集群使用 VPC-CNI 或 Global Router 且已开启 VPC-CNI 混合</strong>。</td>
+</tr>
+<tr>
+<td><strong>云产品托管</strong></td>
+<td>专享型 API 网关 / 云原生网关（Kong）</td>
+<td>网关在集群外，直连 TKE 的 Pod，无中间节点。自带认证鉴权、流控、灰度分流、缓存、熔断降级。</td>
+<td>多集群统一接入层、需要 API 治理能力。代价是引入云产品依赖与额外费用，且受上文的白名单与版本限制。</td>
+</tr>
+<tr>
+<td><strong>Others（自建）</strong></td>
+<td>自己装的 Kong / APISIX / Traefik / Envoy Gateway 等</td>
+<td>TKE 不托管，需自行安装对应 Ingress Controller，并在 Ingress 上指定 <code>IngressClass</code>。TKE 官方对此路线<strong>不提供 SLA</strong>。</td>
+<td>需要 Kong 完整插件生态、或想上 Gateway API、或已有自建网关标准。<strong>代价</strong>：版本升级、CVE 修复、容量规划全部自理。</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout">
+<p><strong>多控制器共存</strong>：TKE 允许集群内同时存在多个 Ingress Controller，靠 <code>kubernetes.io/ingress.class</code> 或 <code>spec.ingressClassName</code> 区分归属。这让「老的 CLB Ingress 不动、新业务走自建 Kong」这种渐进迁移成为可能，是迁移期最实用的抓手。</p>
+</div>
+
+<h2 id="s2">2. CLB Ingress 要点</h2>
+
+<p>默认路线，也是很多团队的起点。几个在生产上踩过坑的点：</p>
+
+<ul>
+<li><strong>IP 不收敛</strong>：一条 Ingress = 一个 CLB 实例 = 一个 IP。域名多、路由多时，CLB 实例费 + 公网 IP 费会明显超过自建网关的节点成本。</li>
+<li><strong>直连 Pod 需要 VPC-CNI</strong>：不开直连时走 NodePort，多一跳转发，且必然 SNAT，流量集中时容易出现<strong>端口耗尽或 conntrack 插入冲突导致丢包</strong>；同时 CLB 绑大量节点的 NodePort 会造成全局负载不均、健康检查探测包放大。</li>
+<li><strong>关键 annotation</strong>（TKE 扩展，创建后不可改的居多）：
+<pre><code>kubernetes.io/ingress.class: qcloud                    # 指定控制器，缺省即 qcloud
+kubernetes.io/ingress.existLbId: lb-xxxxxxxx           # 复用已有 CLB
+kubernetes.io/ingress.subnetId: subnet-xxx             # 创建内网 CLB
+kubernetes.io/ingress.internetChargeType: TRAFFIC_POSTPAID_BY_HOUR
+kubernetes.io/ingress.internetMaxBandwidthOut: "10"    # 1-2048 Mbps，仅公网
+kubernetes.io/ingress.qcloud-loadbalance-id            # 只读，控制器回写</code></pre>
+</li>
+<li><strong>计费类型与带宽只在创建时生效</strong>，创建后修改 annotation 无效 —— 这是常见的「改了没效果」来源。</li>
+</ul>
+
+<h2 id="s3">3. Nginx Ingress 现状与三种部署方案</h2>
+
+<h3>三种方案对比</h3>
+<table>
+<thead><tr><th style="width:26%">方案</th><th style="width:37%">优点</th><th style="width:37%">缺点 / 适用</th></tr></thead>
+<tbody>
+<tr><td>Deployment + LB</td><td>最简单，CLB 绑各节点 NodePort，节点增删自动同步</td><td>多一跳 + SNAT，大并发下有端口耗尽与 conntrack 冲突风险。性能要求不高时可用。</td></tr>
+<tr><td>DaemonSet + HostNetwork + LB</td><td>CLB 直绑节点 IP:80/443，性能好</td><td>需人工维护 CLB 与边缘节点，无法自动扩缩容。<strong>官方不推荐</strong>。</td></tr>
+<tr><td><strong>Deployment + LB 直连 Pod</strong></td><td>性能好，无需人工维护 CLB</td><td><strong>推荐方案</strong>。要求集群用 VPC-CNI，或 Global Router 且已开启 VPC-CNI（混合模式）。</td></tr>
+</tbody>
+</table>
+
+<div class="callout danger">
+<p><strong>维护状态（必读）</strong>：容器服务扩展组件 <code>NginxIngress</code> <strong>已停止版本更新和维护</strong>，官方说明为「核心代码完全遵循开源版本，兼容性不受影响，您仍可通过自建方式或 TKE 应用市场继续使用」。结合上游 <code>ingress-nginx</code> 2026-03 归档，这意味着：<strong>继续用 Nginx Ingress = 自行承担安全补丁责任</strong>。阿里云 ACK 已公告同类组件 2026-11-30 后停止维护并建议迁移到 APIG/ALB Ingress 或 Gateway API，行业方向一致。<span class="tag t-amber">中高风险</span></p>
+</div>
+
+<h2 id="s4">4. Kong 是什么</h2>
+
+<p>Kong 的定位是 <strong>API 网关</strong>，不是单纯的 Ingress Controller。它的数据面基于 OpenResty（Nginx + Lua），控制面提供 Admin API 与声明式配置。理解这一点很重要：它能在 Ingress 之外额外提供鉴权、限流、熔断、请求转换、可观测等能力，代价是概念更多、运维更重。</p>
+
+<h4>三层身份，别混</h4>
+<ul>
+<li><strong>Kong Gateway</strong>：数据面本体，处理请求。开源版 + 企业版。</li>
+<li><strong>Kong Ingress Controller（KIC）</strong>：Kubernetes 控制器，watch 集群里的 Ingress / Gateway API / Kong CRD，翻译成 Kong Gateway 的配置。不处理流量。</li>
+<li><strong>Kong Operator</strong>：Kong 主推的 Kubernetes 原生运行方式，接管 Gateway 的 day-2 运维（零停机配置更新、零停机升级、证书轮换、自动扩缩）。这是新方向的落点。</li>
+</ul>
+
+<h2 id="s5">5. Kong 对象模型</h2>
+
+<p>Kong 比 Kubernetes Ingress 多一层抽象，这是插件能挂上去的原因：</p>
+
+<table>
+<thead><tr><th style="width:14%">对象</th><th style="width:38%">职责</th><th style="width:48%">KIC 中的来源（K8s 映射）</th></tr></thead>
+<tbody>
+<tr><td><strong>Route</strong></td><td>入站匹配规则：host、path、header、method、SNI</td><td>Ingress（每条 path 一条）或 Gateway API 的 HTTPRoute / GRPCRoute / TCPRoute</td></tr>
+<tr><td><strong>Service</strong></td><td>上游服务的抽象：协议、host、端口、超时、重试</td><td>Kubernetes Service 自动生成同名 Kong Service</td></tr>
+<tr><td><strong>Upstream</strong></td><td>负载均衡池 + 健康检查 + 算法（一致性哈希等）</td><td>Kubernetes Service 自动对应；细粒度策略用 <code>KongUpstreamPolicy</code></td></tr>
+<tr><td><strong>Target</strong></td><td>具体后端实例 IP:Port（含权重）</td><td>Endpoints / EndpointSlice 自动同步</td></tr>
+<tr><td><strong>Consumer</strong></td><td>API 调用方身份，是 key-auth / JWT / ACL 等插件的挂载主体</td><td><code>KongConsumer</code> CRD</td></tr>
+<tr><td><strong>Plugin</strong></td><td>横切能力，可作用于全局 / Service / Route / Consumer</td><td><code>KongPlugin</code> CRD + <code>konghq.com/plugins</code> 注解</td></tr>
+</tbody>
+</table>
+
+<div class="callout ok">
+<p><strong>实用心智模型</strong>：K8s 的 Service 在 Kong 里被拆成两半 —— 不变的「Service」和可调优的「Upstream/Target」。所以灰度权重、健康检查阈值这类东西，在 nginx ingress 里要写 annotation，在 Kong 里是 Upstream 的一等字段。</p>
+</div>
+
+<h2 id="s6">6. 部署模式与插件</h2>
+
+<h3>DB-less vs DB-backed</h3>
+<table>
+<thead><tr><th style="width:20%">模式</th><th style="width:40%">说明</th><th style="width:40%">取舍</th></tr></thead>
+<tbody>
+<tr><td><strong>DB-less（声明式）</strong></td><td>无数据库，配置以声明式文件（或 K8s CRD）形式加载进内存</td><td><strong>Kubernetes 场景首选</strong>。配置即 Git 里的 YAML，可版本化、可回滚、可 Code Review。KIC 3.x 的 Helm chart 默认 <code>router_flavor: expressions</code>。</td></tr>
+<tr><td><strong>DB-backed</strong></td><td>配置存 PostgreSQL，多节点共享</td><td>适合 Kong 集群规模大、需要 Admin API 动态改配置的场景。代价是多一个数据库要运维，且配置漂移风险高。Helm 默认用 <code>traditional_compatible</code> 路由引擎以兼容存量配置。</td></tr>
+</tbody>
+</table>
+
+<h3>插件</h3>
+<ul>
+<li><strong>开源插件</strong>覆盖：认证（key-auth / JWT / OAuth2 / basic-auth）、安全（CORS / IP 黑白名单 / bot-detection）、流控（rate-limiting / request-termination）、可观测（prometheus / zipkin / opentelemetry / file-log / http-log）、转换（request-transformer / response-transformer / cors）。</li>
+<li><strong>企业版独有</strong>：OIDC、高级 RBAC、Workspaces、Dev Portal、Vitals 等。</li>
+<li><strong>注意</strong>：插件配置里引用 Secret 时，KIC 3.4.15 及之前存在 <code>GO-2026-5010</code>（Secret-backed plugin 配置经非敏感 diagnostics 端点泄漏）的 Moderate 级漏洞，需升级到修复版本。</li>
+</ul>
+
+<h2 id="s7">7. 版本与兼容矩阵</h2>
+
+<h3>KIC 支持状态（Kong 官方支持策略）</h3>
+<table>
+<thead><tr><th style="width:18%">KIC 版本</th><th style="width:22%">发布日期</th><th style="width:22%">EOL</th><th style="width:38%">备注</th></tr></thead>
+<tbody>
+<tr><td><strong>3.5.x</strong></td><td>2025-07-04</td><td>2027-12-18</td><td>当前主线，支持 Gateway API 1.3</td></tr>
+<tr><td><strong>3.4.x</strong></td><td>2024-12-18</td><td>2027-12-18</td><td>LTS，K8s 1.29–1.32 官方推荐，支持 Gateway API 1.2</td></tr>
+<tr><td>2.12.x</td><td>2023-09-25</td><td><strong>2026-09-25</strong></td><td><span class="tag t-red">本月到期</span> K8s 1.23–1.28 场景仍在用，必须排升级</td></tr>
+</tbody>
+</table>
+
+<h3>Kubernetes / Gateway API 兼容</h3>
+<ul>
+<li>Kubernetes <strong>1.27 – 1.35</strong> 均在 KIC 3.x 支持范围内（K8s 1.32 上游 EOL 为 2026-02）。</li>
+<li>Gateway API 对应关系：KIC 3.2 → 1.1，3.4 → 1.2，<strong>3.5 → 1.3</strong>。升级 KIC 前必须先确认集群里的 Gateway API CRD 版本，跨版本升级常需手工干预。</li>
+<li>Kong Gateway 3.4.x – 3.12.x 与 KIC 3.x 全系兼容。</li>
+<li><strong>KIC 3.0 起 Helm 是唯一官方安装方式</strong>，manifest/Operator 之外的装法不再受官方支持。</li>
+</ul>
+
+<div class="callout warn">
+<p><strong>升级姿势（KIC 特有）</strong>：Helm 不会自动升级 CRD。每次升级 KIC 必须单独执行 <code>kubectl kustomize https://github.com/Kong/kubernetes-ingress-controller/config/crd?ref=v3.5 | kubectl apply -f -</code>。漏掉这一步是生产上最常见的升级事故来源。</p>
+</div>
+
+<h2 id="s8">8. Ingress → Gateway API</h2>
+
+<p>Ingress API 已 feature-frozen，Gateway API 是官方指定的方向。Kong 是 Gateway API 最早、最完整的实现者之一，同时仍继续支持 Ingress 资源（只要 Kubernetes API 还允许）。</p>
+
+<h4>Gateway API 的三层角色模型</h4>
+<ul>
+<li><strong>GatewayClass</strong> —— 基础设施提供方定义控制器类型</li>
+<li><strong>Gateway</strong> —— 集群运维定义入口（listener、端口、TLS 证书）</li>
+<li><strong>HTTPRoute / GRPCRoute / TCPRoute</strong> —— 应用开发方定义路由逻辑（权重、header 匹配、filter）</li>
+</ul>
+<p>相比 Ingress 的核心改进：<strong>角色分离 + 标准化字段取代 annotation  sprawl + 原生权重分流 + 完善的 status 字段</strong>（排障时能直接看出资源是否被 accept、programmed）。</p>
+
+<h4>KIC 3.5 的废弃项映射</h4>
+<table>
+<thead><tr><th style="width:30%">已废弃（仍可用，有告警）</th><th style="width:30%">迁移目标</th><th style="width:40%">说明</th></tr></thead>
+<tbody>
+<tr><td>KongIngress</td><td>KongUpstreamPolicy</td><td>路由与服务级配置已改用专用 annotation，如 <code>konghq.com/https-redirect-status-code</code></td></tr>
+<tr><td>TCPIngress</td><td>TCPRoute（Gateway API）</td><td>未来版本将移除</td></tr>
+<tr><td>UDPIngress</td><td>UDPRoute（Gateway API）</td><td>未来版本将移除</td></tr>
+</tbody>
+</table>
+
+<h4>迁移工具</h4>
+<ul>
+<li><strong>ingress2gateway</strong>：SIG Network 官方工具，2026-03 发布 1.0。支持 30+ 个 ingress-nginx annotation（CORS、后端 TLS、正则匹配、路径重写等），并有控制器级集成测试验证行为等价性。会明确告警无法翻译的配置。</li>
+<li>Kong 也维护了自己的 <code>ingress2gateway</code> 路径与文档（<code>--providers=ingress-nginx</code>）。</li>
+</ul>
+<pre><code># 安装
+go install github.com/kubernetes-sigs/ingress2gateway@v1.0.0
+# 或 brew install ingress2gateway
+
+# 按命名空间导出（推荐先小范围试）
+ingress2gateway print --namespace my-api --providers=ingress-nginx > gwapi.yaml
+
+# 全集群导出
+ingress2gateway print --providers=ingress-nginx --all-namespaces > gwapi.yaml</code></pre>
+<div class="callout warn">
+<p>工具是<strong>迁移助手，不是一键替换</strong>。导出的 YAML 必须逐条人工复核，尤其是 <code>configuration-snippet</code> 这类任意 nginx 指令 —— 它们不可翻译，也没有等价物。</p>
+</div>
+
+<h2 id="s9">9. 腾讯云云原生网关 Kong × TKE</h2>
+
+<h3>产品定位</h3>
+<p>腾讯云云原生网关（微服务引擎 TSE / 微服务平台 TSF 下的组件）<strong>内核基于开源 Kong</strong>，兼容 Kong 3.x 等主流版本，定位为「流量网关 + 安全网关 + 微服务网关」三合一托管产品。官方宣称 100% 兼容开源、支持自定义插件、控制台可批量改系统参数（请求体大小、TLS 版本等）、支持多可用区与网关数据备份。</p>
+
+<h3>对接 TKE 的两种方式</h3>
+
+<h4>方式一：服务来源关联（控制台手动）</h4>
+<p>控制台路径：<strong>云原生网关实例 → 服务路由 → 服务来源 → 新建</strong>，来源类型选「容器服务」，实例选<strong>与网关同 VPC</strong> 的 TKE 集群。然后在<strong>服务路由 → 服务 → 新建</strong>，服务类型选「K8S 服务」，填写命名空间和服务名，最后配路由规则（请求方法 / 路径 / Host 至少配一种）。</p>
+<p>适用：服务数量少、变更不频繁、不希望网关 watch 集群全部资源。</p>
+
+<h4>方式二：开启托管 Kong Ingress Controller</h4>
+<p>控制台路径：<strong>TSF 控制台 → 云原生网关 → 实例详情 → Ingress → 关联容器集群</strong>。可关联同 VPC 或通过 <strong>云联网 CCN / 对等连接</strong> 打通的集群。开启后网关直接监听容器集群变化并同步配置，Ingress 资源里把 <code>ingress.class</code> 设成对应 IngressClass（<strong>默认 <code>kong</code></strong>，可自定义）即可。</p>
+<pre><code>apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo-v1
+  annotations:
+    konghq.com/plugins: "httpbin-auth"
+spec:
+  ingressClassName: kong
+  rules:
+  - http:
+      paths:
+      - path: /demo-v1
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx
+            port:
+              number: 80</code></pre>
+<div class="callout danger">
+<p><strong>三个必须向腾讯云确认的点</strong><span class="tag t-red">高风险</span></p>
+<ol style="margin-bottom:0">
+<li><strong>新购限制</strong>：官方文档明确「目前云原生网关仅对微服务场景，即作为 Polaris（北极星）服务接入层支持开通白名单新购，其余场景不支持新接入」。如果你的场景不是北极星接入层，需要先提工单确认能否开通。</li>
+<li><strong>KIC 版本落后</strong>：文档列出的支持版本为 <strong>2.7.0 / 2.5.0 / 1.3.4</strong>，而开源 KIC 已到 3.5.x。2.x 与 3.x 在路由引擎、CRD、Helm-only 安装、废弃项上差异巨大。请直接找腾讯云确认托管版内核与 KIC 的实际版本、以及 Gateway API 支持到哪一版。</li>
+<li><strong>多集群限制</strong>：文档注明「仅 Ingress 2.7.0 支持关联多个容器集群」。如果你打算用一套网关管多个 TKE 集群，这是硬门槛。</li>
+</ol>
+</div>
+
+<h3>形态 A vs 形态 B 的取舍</h3>
+<table>
+<thead><tr><th style="width:20%">维度</th><th style="width:40%">形态 A · 托管云原生网关</th><th style="width:40%">形态 B · 集群内自建 KIC</th></tr></thead>
+<tbody>
+<tr><td>运维主体</td><td>腾讯云托管，免底层运维</td><td>自己管版本、CVE、容量</td></tr>
+<tr><td>版本可控性</td><td>跟随云产品节奏，落后开源主线</td><td>完全自主，可立即上 3.5.x</td></tr>
+<tr><td>网络要求</td><td>网关与集群同 VPC / CCN / 对等连接；<strong>直连 Pod，无中间节点</strong></td><td>在集群内，网络路径最短</td></tr>
+<tr><td>多集群统一接入</td><td>天然支持（受版本限制）</td><td>需自行部署多套 + 外部 LB 聚合</td></tr>
+<tr><td>CI/CD 集成</td><td>部分配置在控制台，GitOps 需额外打通</td><td>Ingress/CRD 即 YAML，天然 GitOps</td></tr>
+<tr><td>成本</td><td>网关实例费</td><td>节点资源 + 人力</td></tr>
+</tbody>
+</table>
+
+<h2 id="s10">10. 选型决策</h2>
+
+<div class="callout ok">
+<p><strong>决策顺序建议</strong>（按你自己的排查习惯：先看影响范围，再定方案）：</p>
+<ol style="margin-bottom:0">
+<li><strong>只是简单七层路由、域名不多</strong> → 继续用 CLB Ingress（<code>qcloud</code>）。它受腾讯云 SLA 保障，运维成本最低。注意 IP 不收敛的成本拐点。</li>
+<li><strong>需要 IP 收敛 + 较复杂路由，且能接受自担安全风险</strong> → 短期可继续用 Nginx Ingress（走 <code>Deployment + LB 直连 Pod</code> 方案，需 VPC-CNI），但必须排迁移计划。</li>
+<li><strong>需要 API 治理（鉴权/限流/灰度/插件），且已是北极星微服务体系</strong> → 走形态 A 托管云原生网关，先提工单确认开通与版本。</li>
+<li><strong>需要 Kong 完整能力 + 版本自主 + GitOps</strong> → 走形态 B，集群内自建 KIC 3.4 LTS（或 3.5.x），前端挂 CLB。</li>
+<li><strong>新建集群 / 新业务</strong> → 直接上 Gateway API + Kong，别再从 Ingress 起步。</li>
+</ol>
+</div>
+
+<h2 id="s11">11. 发布与回滚方案</h2>
+
+<p>以下以<strong>形态 B（集群内自建 KIC）替换现有 Nginx Ingress</strong> 为例，风险等级 <span class="tag t-amber">中</span>。版本号、灰度、步骤、观测、回滚五项齐全。</p>
+
+<h4>版本号</h4>
+<ul>
+<li>Helm chart：<code>kong/kong</code>，KIC <strong>3.4.x（LTS，EOL 2027-12-18）</strong>；若集群已用 Gateway API 1.3 则选 <strong>3.5.x</strong>。</li>
+<li>Kong Gateway 镜像：<code>kong:3.9.x</code> 或更高（3.4.x–3.12.x 与 KIC 3.x 全系兼容），<strong>不要用 EOL 版本</strong>。</li>
+<li>Gateway API CRD：与 KIC 版本对应（3.4 → 1.2，3.5 → 1.3），用 Standard Channel。</li>
+<li>前置于 Kong 的 CLB：复用现有 VIP 或新建，创建时一次性确定计费类型与带宽。</li>
+</ul>
+
+<h4>灰度策略</h4>
+<ul>
+<li><strong>按域名灰度</strong>（推荐，最可控）：先在 Kong 上发布<strong>非核心域名</strong>，验证通过后再逐个迁移核心域名。同一时刻两套 ingress 并存，靠 DNS/CLB 转发规则切流。</li>
+<li><strong>按流量比例灰度</strong>：核心域名用 Gateway API 的 <code>backendRefs</code> 权重，从 5% → 20% → 50% → 100% 递进。CLB Ingress 路线不支持权重，只能靠调整后端 RS 权重实现，粒度更粗。</li>
+<li><strong>发布窗口</strong>：选业务低峰，每次只切一个域名，切完观察 30 分钟再进入下一个。</li>
+</ul>
+
+<h4>发布步骤</h4>
+<ol>
+<li><strong>前置检查</strong>：确认集群网络模式（是否支持 VPC-CNI 直连 Pod，决定 CLB 到 Kong 的链路）；确认 Gateway API CRD 已安装且版本匹配。</li>
+<li><strong>安装 CRD</strong>（Helm 不管 CRD）：
+<pre><code>kubectl kustomize https://github.com/Kong/kubernetes-ingress-controller/config/crd?ref=v3.4 \
+  | kubectl apply -f -</code></pre></li>
+<li><strong>Helm 安装 KIC</strong> 到独立 namespace（如 <code>kong</code>），<code>ingressController.ingressClass</code> 设为 <code>kong</code>，<strong>不要覆盖已有的 <code>nginx</code> / <code>qcloud</code></strong>。</li>
+<li><strong>先建灰度 Ingress/HTTPRoute</strong>，指向与现网相同的后端 Service，用非核心域名验证。</li>
+<li><strong>逐域名切换</strong>，每切一个观察 30 分钟。</li>
+<li><strong>摘除旧控制器</strong>：确认全部流量已迁走，再下线 nginx ingress。</li>
+</ol>
+
+<h4>观测验证</h4>
+<ul>
+<li><strong>Kong 侧</strong>：开启 <code>prometheus</code> 插件，重点看 <code>kong_http_requests_total</code>（按 route/service 与 status 分组）、<code>kong_upstream_target_health</code>、延迟分位。</li>
+<li><strong>控制器侧</strong>：<code>kubectl -n kong logs deploy/&lt;kic&gt; </code> 看配置同步是否有 <code>translation error</code> / <code>config push failed</code>。</li>
+<li><strong>CLB 侧</strong>：腾讯云可观测平台看 CLB 的<b>后端健康检查异常数、出带宽、连接数、5xx 状态码</b>。</li>
+<li><strong>业务侧</strong>：对比切换前后的错误率、P99 延迟、QPS。Kong 与 nginx 的默认超时、body size 限制不同（如 nginx 的 <code>proxy-body-size</code>、<code>proxy-read-timeout</code>），最容易在这里出差异。</li>
+<li><strong>日志</strong>：Kong 的 <code>http-log</code> / <code>file-log</code> 插件接入 CLS，用于比对请求路径是否与预期一致。</li>
+</ul>
+
+<h4>回滚条件与操作</h4>
+<table>
+<thead><tr><th style="width:34%">触发条件</th><th style="width:33%">回滚动作</th><th style="width:33%">影响范围</th></tr></thead>
+<tbody>
+<tr><td>切换后 5 分钟内 5xx 比例 &gt; 1%，或 P99 延迟上升 &gt; 50%</td><td>将该域名的 Ingress/HTTPRoute 改回原 IngressClass；或 DNS 回切</td><td>单域名，秒级</td></tr>
+<tr><td>Kong Pod 反复 CrashLoop / 配置同步持续失败</td><td><code>helm rollback -n kong &lt;release&gt;</code></td><td>全部走 Kong 的域名</td></tr>
+<tr><td>某插件导致请求被错误拦截（如限流阈值过小）</td><td>删除对应 <code>KongPlugin</code> 或摘掉 <code>konghq.com/plugins</code> 注解</td><td>该插件作用的 route/service</td></tr>
+<tr><td>CLB 健康检查批量失败</td><td>检查 Kong Pod 就绪探针与 CLB 安全组；必要时 CLB 后端切回原 nginx</td><td>全量</td></tr>
+</tbody>
+</table>
+<div class="callout">
+<p><strong>回滚前置条件</strong>：旧控制器在整个灰度期必须<strong>保持原样不下线</strong>，且 CLB/DNS 的回切路径提前演练过一次。没有演练过的回滚方案不算回滚方案。</p>
+</div>
+
+<h2 id="s12">12. 配置片段</h2>
+
+<h4>Helm 安装 KIC（关键 values）</h4>
+<pre><code>helm repo add kong https://charts.konghq.com
+helm repo update
+
+cat &lt;&lt;'EOF' &gt; values.yaml
+ingressController:
+  image:
+    tag: "3.4"
+  ingressClass: kong
+  env:
+    # 仅处理 ingressClassName: kong 的 Ingress
+    # 与 qcloud / nginx 共存的关键
+  installCRDs: false        # CRD 必须单独手工管理
+image:
+  repository: kong
+  tag: "3.9"
+env:
+  database: "off"           # DB-less 声明式，K8s 场景首选
+  router_flavor: expressions
+proxy:
+  type: LoadBalancer        # TKE 上会自动创建 CLB
+  http:
+    enabled: true
+  tls:
+    enabled: true
+resources:
+  requests: { cpu: "1", memory: "2Gi" }
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+EOF
+
+helm install kong kong/kong -n kong --create-namespace -f values.yaml</code></pre>
+
+<h4>插件：限流 + 密钥鉴权</h4>
+<pre><code>apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: rate-limit-5rpm
+config:
+  minute: 5
+  policy: local
+plugin: rate-limiting
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: key-auth-check
+plugin: key-auth
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo
+  annotations:
+    konghq.com/plugins: "rate-limit-5rpm,key-auth-check"
+spec:
+  ingressClassName: kong
+  rules:
+  - host: demo.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx
+            port:
+              number: 80</code></pre>
+
+<h4>Gateway API 写法（推荐新建集群使用）</h4>
+<pre><code>apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: prod-gw
+  namespace: kong
+spec:
+  gatewayClassName: kong
+  listeners:
+  - name: http
+    port: 80
+    protocol: HTTP
+  - name: https
+    port: 443
+    protocol: HTTPS
+    tls:
+      certificateRefs:
+      - name: prod-tls
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: demo
+spec:
+  parentRefs:
+  - name: prod-gw
+    namespace: kong
+  hostnames: ["demo.example.com"]
+  rules:
+  - matches:
+    - path: { type: PathPrefix, value: / }
+    backendRefs:
+    - name: nginx
+      port: 80
+      weight: 90      # 灰度：9:1
+    - name: nginx-canary
+      port: 80
+      weight: 10</code></pre>
+<div class="callout ok">
+<p><strong>排障优势</strong>：Gateway API 资源带 <code>status.conditions</code>，可以直接看到 <code>Accepted</code> / <code>Programmed</code> / <code>ResolvedRefs</code> 三个状态及原因，比 Ingress 靠猜 annotation 是否生效强得多。</p>
+</div>
+
+<h2 id="s13">13. 排查清单</h2>
+
+<p>沿用你的链路排查习惯，从外到内逐段验证：客户端 → DNS → CLB → Kong（数据面）→ KIC（控制面同步）→ K8s Service → EndpointSlice → Pod。</p>
+
+<ol>
+<li><strong>请求根本没到 CLB</strong>：检查 DNS 解析、CLB 安全组放通 80/443、CLB 是否被 ACL/安全组拦截。跨地域走 CEN 的，确认云联网带宽与路由。</li>
+<li><strong>CLB 健康检查失败</strong>：Kong Pod 是否 Ready；CLB 到 Pod 的探测端口是否正确；VPC-CNI 直连模式下注意节点安全组。</li>
+<li><strong>到 Kong 但返回 404（no Route matched）</strong>：Ingress 的 <code>ingressClassName</code> 是否等于 KIC 配置的 <code>ingressClass</code>；Host 是否匹配；<code>pathType</code> 是否写对（<code>Prefix</code> vs <code>ImplementationSpecific</code>）。</li>
+<li><strong>返回 401/403</strong>：插件作用范围（全局 / Service / Route / Consumer）是否符合预期；<code>KongConsumer</code> 凭证是否创建。</li>
+<li><strong>返回 503（no healthy upstream）</strong>：EndpointSlice 是否有可用 Target；Upstream 健康检查阈值是否过严；服务刚发布时 Target 还没同步。</li>
+<li><strong>配置改了不生效</strong>：看 KIC 日志是否有 translation error；CRD 是否在升级后忘了单独 apply；是否存在多个控制器抢同一个 Ingress。</li>
+<li><strong>性能问题</strong>：Kong 的资源 requests 是否给够；HPA 是否触发；CLB 走 NodePort 时检查节点 conntrack 表与端口占用。</li>
+<li><strong>跨网段不通</strong>：云原生网关与 TKE 集群需同 VPC，或用 CCN / 对等连接打通；安全组、CFW、网络 ACL 逐层确认。</li>
+</ol>
+
+<h2 id="s14">14. 参考来源</h2>
+<ul>
+<li>腾讯云 · Ingress Controllers 说明（含 CLB / Nginx / Others 类型与功能对比）：<code>cloud.tencent.com/document/product/457/40957</code></li>
+<li>腾讯云 · 在 TKE 上部署 Nginx Ingress（三种方案对比）：<code>tencentcloud.com/document/product/457/38072</code></li>
+<li>腾讯云 · 使用云原生网关访问 TKE 服务：<code>cloud.tencent.com/document/api/460/83138</code></li>
+<li>腾讯云 · 云原生网关概述（基于开源 Kong，兼容 3.x）与 Kong Ingress Controller 使用：<code>cloud.tencent.com/document/product/1364/99229</code></li>
+<li>Kong · Ingress Controller 版本支持策略（EOL 表）：<code>developer.konghq.com/kubernetes-ingress-controller/support</code></li>
+<li>Kong · 版本兼容矩阵（K8s / Gateway API / Istio）：<code>docs.konghq.com/kubernetes-ingress-controller/references/version-compatibility</code></li>
+<li>Kong · Helm 升级 KIC（CRD 需手工升级）：<code>developer.konghq.com/kubernetes-ingress-controller/faq/upgrading-ingress-controller</code></li>
+<li>Kubernetes 官方 · Ingress NGINX 退役公告：<code>kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/</code></li>
+<li>Kubernetes 官方 · Ingress2Gateway 1.0：<code>kubernetes.io/blog/2026/03/20/ingress2gateway-1-0-release/</code></li>
+</ul>
+
+<div class="callout warn">
+<p><strong>需要你二次核验的三件事</strong>（文档与实际可能存在偏差，控制台为准）：<br>
+1. 云原生网关在你所在地域、你的业务场景下的<strong>开通资格与白名单</strong>。<br>
+2. 托管版 Kong Ingress Controller 的<strong>实际内核版本、支持的 Gateway API 版本</strong>，以及是否支持关联多个 TKE 集群。<br>
+3. 集群的<strong>网络模式</strong>（VPC-CNI / Global Router），它决定 CLB 能否直连 Pod，进而决定性能与运维方案。</p>
+</div>
+
+</main>
+</div>
+</body>
+</html>
