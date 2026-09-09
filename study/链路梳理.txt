@@ -1,0 +1,34 @@
+[root@saas-sit-opsmgt ~]# kubectl get ingress -o wide -n saas-sit
+NAME                                        CLASS                HOSTS                                   ADDRESS         PORTS     AGE
+go-jinbi-cli-auth-gateway-service-ingress   <none>               xuanlan-test-mobile.jinbizhihui.com     10.113.205.15   80, 443   94d
+saas-prd-test-ingress                       <none>               saas-prd-test.evertro.tech              10.113.206.5    80, 443   77d
+test-admin-stable                           saas-ingress-nginx   test-admin.evertro.tech                 10.113.205.3    80, 443   169d
+test-lvcc-manage-admin-stable               saas-ingress-nginx   lvcc-manage-sit.hengdayun.com           10.113.205.3    80, 443   84d
+test-oa-data-process-stable                 saas-ingress-nginx   oa-data-process-test.evertro.tech       10.113.205.3    80, 443   4d4h
+test-official-h5-stable                     saas-ingress-nginx   official-h5-test.evertro.tech           10.113.205.3    80, 443   73d
+
+
+# 看 HOSTS / PATH / BACKEND 三列 , 记下 BACKEND 是哪个 Service
+[root@saas-sit-opsmgt ~]# kubectl get ingress -n saas-sit -o custom-columns=NAME:.metadata.name,HOST:.spec.rules[*].host,PATH:.spec.rules[*].http.paths[*].path,BACKEND:.spec.rules[*].http.paths[*].backend.service.name
+NAME                   HOST                        PATH    BACKEND
+test-admin-stable      test-admin.evertro.tech     /       saas-frontend-saas-basic-platform-stable-svc
+
+
+# 看 SELECTOR 和 CLUSTER-IP , Service 靠 SELECTOR 认 Pod
+[root@saas-sit-opsmgt ~]# kubectl -n saas-sit get svc saas-frontend-saas-basic-platform-stable-svc -o wide
+NAME                                          TYPE       CLUSTER-IP     EXTERNAL-IP PORT(S) AGE   SELECTOR
+saas-frontend-saas-basic-platform-stable-svc  ClusterIP  172.20.222.22  <none>      80/TCP  171d  app=saas-frontend-saas-basic-platform,version=stable
+
+
+[root@saas-sit-opsmgt ~]# kubectl -n saas-sit get pod -l app=saas-frontend-saas-basic-platform,version=stable -o wide
+NAME                                                     READY  STATUS   RESTARTS  AGE   IP             NODE           NOMINATED NODE  READINESS GATES
+saas-frontend-saas-basic-platform-stable-6bf7cdc7-n56q2  1/1    Running  0         3d3h  172.20.209.20  10.113.204.51  <none>          <none>
+
+
+test-admin-stable
+		↓
+saas-frontend-saas-basic-platform-stable-svc
+		↓
+app=saas-frontend-saas-basic-platform,version=stable
+		↓
+saas-frontend-saas-basic-platform-stable-6bf7cdc7-n56q2

@@ -1,0 +1,3 @@
+﻿HKLM Typora.md open: "D:\apps\Typora\Typora.exe" "%1"
+HKCU Typora.md: 无
+HKCR Notepad++/Npp 相关键: 

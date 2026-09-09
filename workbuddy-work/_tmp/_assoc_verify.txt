@@ -1,0 +1,4 @@
+﻿.txt ProgId 已改写为 Notepad++_file
+.log ProgId 已改写为 Notepad++_file
+.txt 复查: ProgId=editor.txt Hash=7hODR5JZY1s=
+.log 复查: ProgId=editor.log Hash=iH+oBhC4yZA=

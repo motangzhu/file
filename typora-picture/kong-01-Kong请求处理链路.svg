@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 430" width="100%" role="img">
+  <title>Kong 请求处理链路与 Konga 管理台</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <text x="40" y="50" font-family="sans-serif" font-size="12.5" font-weight="500" fill="#0F6E56">数据面：一个请求在 Kong 里的路径</text>
+  <g class="c-gray">
+    <rect x="40" y="66" width="80" height="40" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+    <text x="80" y="86" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12.5" font-weight="500" fill="#444441">客户端</text>
+  </g>
+  <line x1="120" y1="86" x2="148" y2="86" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="152" y="60" width="356" height="100" rx="12" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text x="330" y="80" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="500" fill="#085041">Kong Gateway</text>
+  <g class="c-teal">
+    <rect x="168" y="92" width="96" height="36" rx="8" fill="#9FE1CB" stroke="#0F6E56" stroke-width="0.5"/>
+    <text x="216" y="110" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" font-weight="500" fill="#085041">路由匹配</text>
+  </g>
+  <line x1="264" y1="110" x2="286" y2="110" stroke="#0F6E56" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <g class="c-teal">
+    <rect x="290" y="92" width="96" height="36" rx="8" fill="#9FE1CB" stroke="#0F6E56" stroke-width="0.5"/>
+    <text x="338" y="110" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" font-weight="500" fill="#085041">插件链</text>
+  </g>
+  <line x1="386" y1="110" x2="408" y2="110" stroke="#0F6E56" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <g class="c-teal">
+    <rect x="412" y="92" width="80" height="36" rx="8" fill="#9FE1CB" stroke="#0F6E56" stroke-width="0.5"/>
+    <text x="452" y="110" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12" font-weight="500" fill="#085041">转发上游</text>
+  </g>
+  <text x="330" y="148" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#0F6E56">Route → 匹配后依次过插件（认证/限流/日志）→ Upstream</text>
+
+  <line x1="508" y1="110" x2="536" y2="110" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <g class="c-gray">
+    <rect x="540" y="66" width="100" height="40" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+    <text x="590" y="82" text-anchor="middle" font-family="sans-serif" font-size="12.5" font-weight="500" fill="#444441">后端 Service</text>
+    <text x="590" y="96" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#5F5E5A">业务集群</text>
+  </g>
+
+  <text x="40" y="196" font-family="sans-serif" font-size="12.5" font-weight="500" fill="#854F0B">控制面：Konga 管理台怎么改配置</text>
+  <g class="c-amber">
+    <rect x="40" y="212" width="130" height="40" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+    <text x="105" y="228" text-anchor="middle" font-family="sans-serif" font-size="12.5" font-weight="500" fill="#633806">Konga 管理台</text>
+    <text x="105" y="243" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#854F0B">浏览器访问 :1337</text>
+  </g>
+  <line x1="170" y1="232" x2="198" y2="232" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <g class="c-amber">
+    <rect x="202" y="212" width="150" height="40" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+    <text x="277" y="228" text-anchor="middle" font-family="sans-serif" font-size="12.5" font-weight="500" fill="#633806">Admin API</text>
+    <text x="277" y="243" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#854F0B">实例内 :2001</text>
+  </g>
+  <path d="M352 224 C 400 210 420 150 440 128" fill="none" stroke="#854F0B" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <text x="418" y="180" font-family="sans-serif" font-size="11" fill="#854F0B">读写配置，不经业务流量</text>
+  <text x="40" y="286" font-family="sans-serif" font-size="12" fill="#444441">TSE 托管 Kong 自带 Konga：实例详情「访问控制」页签取地址与初始密码</text>
+
+  <g>
+    <rect x="40" y="314" width="600" height="80" rx="8" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.5"/>
+    <text x="56" y="334" font-family="sans-serif" font-size="12" fill="#444441">插件是 Kong 的扩展机制：认证、限流熔断、日志、可观测都以插件形式挂在 Route/Service 上</text>
+    <text x="56" y="352" font-family="sans-serif" font-size="12" fill="#444441">配置存储二选一：DB-backed 存 Postgres（Konga 改的是它）；DB-less 用声明式 YAML 全量下发</text>
+    <text x="56" y="370" font-family="sans-serif" font-size="12" fill="#444441">TSE 托管版的 Konga 配置经 Admin API 生效于实例，与业务流量通道是分开的两条链路</text>
+  </g>
+</svg>

@@ -1,0 +1,30 @@
+﻿=== AppData 按三层路径分组(前20) ===
+AppData\Local\Temp => 39524 items, 42481.1 MB
+AppData\Roaming\Microsoft => 20 items, 398.8 MB
+AppData\Local\JianyingPro => 89 items, 102.5 MB
+AppData\Local\npm-cache => 160 items, 70.8 MB
+AppData\Local\nvm => 1338 items, 19.6 MB
+AppData\Roaming\TRAE SOLO CN => 706 items, 6.2 MB
+AppData\Local\node-addon-native-custom-loader => 1 items, 0.3 MB
+AppData\Local\Packages => 5 items, 0.2 MB
+AppData\Local\pnpm => 24 items, 0.1 MB
+AppData\Local\pip => 20 items, 0 MB
+
+=== .dsh\profiles 按子路径分组(前15) ===
+web\node_modules => 23366 items, 585.9 MB
+web\node_modules_broken_bak => 1 items, 373.2 MB
+node_modules.lock => 1 items, 0 MB
+web\_tmp_36020_00044048 => 1 items, 0 MB
+web\_tmp_37872_1953f818 => 1 items, 0 MB
+web\_tmp_13456_19dec6dc => 1 items, 0 MB
+web\_tmp_37872_3aa785d4 => 1 items, 0 MB
+web\_tmp_36020_1411cfb0 => 1 items, 0 MB
+web\_tmp_8156_36b765c0 => 1 items, 0 MB
+web\_tmp_37872_1148a5c4 => 1 items, 0 MB
+web\_tmp_8156_088a77f0 => 1 items, 0 MB
+web\_tmp_8156_25dea484 => 1 items, 0 MB
+web\_tmp_13456_2ba061dc => 1 items, 0 MB
+
+=== dsh 删除日期分布 ===
+2026-09-04 => 1 items
+2026-09-07 => 23377 items

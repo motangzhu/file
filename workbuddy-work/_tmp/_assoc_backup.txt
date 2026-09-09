@@ -1,0 +1,9 @@
+﻿.txt 原默认值=(空)
+.log 原默认值=log_auto_file
+.md 原默认值=md_auto_file
+.txt 孤儿UserChoice 已删除
+.log 孤儿UserChoice 已删除
+.md 孤儿UserChoice 已删除
+Notepad++_file ProgId 已建立并指向 NPP
+.txt/.log -> Notepad++_file, .md -> Typora.md
+SupportedTypes 已补全(NPP可被系统识别支持这些类型)

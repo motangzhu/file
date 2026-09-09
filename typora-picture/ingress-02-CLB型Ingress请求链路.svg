@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 460" width="100%" role="img">
+  <title>CLB 类型 Ingress 请求链路</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <rect x="30" y="32" width="620" height="76" rx="10" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.5"/>
+  <text x="48" y="52" font-family="sans-serif" font-size="12.5" font-weight="500" fill="#5F5E5A">控制面：Ingress 配置如何生效</text>
+  <g class="c-gray">
+    <rect x="60" y="62" width="140" height="36" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+    <text x="130" y="80" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12.5" font-weight="500" fill="#444441">Ingress 资源</text>
+  </g>
+  <line x1="200" y1="80" x2="230" y2="80" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <g class="c-gray">
+    <rect x="234" y="62" width="180" height="36" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+    <text x="324" y="80" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12.5" font-weight="500" fill="#444441">Ingress Controller</text>
+  </g>
+  <path d="M414 74 C 460 60 480 150 452 176" fill="none" stroke="#185FA5" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <text x="470" y="120" font-family="sans-serif" font-size="11" fill="#185FA5">同步转发规则到 CLB</text>
+
+  <rect x="30" y="128" width="620" height="230" rx="10" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+  <text x="48" y="150" font-family="sans-serif" font-size="12.5" font-weight="500" fill="#0C447C">数据面：请求如何流动</text>
+
+  <g class="c-gray">
+    <rect x="60" y="208" width="86" height="40" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+    <text x="103" y="228" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12.5" font-weight="500" fill="#444441">客户端</text>
+  </g>
+  <line x1="146" y1="228" x2="176" y2="228" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <g class="c-blue">
+    <rect x="180" y="206" width="120" height="44" rx="8" fill="#B5D4F4" stroke="#185FA5" stroke-width="0.5"/>
+    <text x="240" y="223" text-anchor="middle" font-family="sans-serif" font-size="12.5" font-weight="500" fill="#0C447C">CLB</text>
+    <text x="240" y="238" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#0C447C">真正执行七层转发</text>
+  </g>
+  <line x1="300" y1="216" x2="330" y2="196" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="300" y1="240" x2="330" y2="260" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <g class="c-gray">
+    <rect x="334" y="172" width="150" height="40" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+    <text x="409" y="188" text-anchor="middle" font-family="sans-serif" font-size="12.5" font-weight="500" fill="#444441">NodePort Service</text>
+    <text x="409" y="202" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#5F5E5A">kube-proxy 转发到节点</text>
+  </g>
+  <line x1="484" y1="192" x2="512" y2="192" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <g class="c-green">
+    <rect x="516" y="172" width="76" height="40" rx="8" fill="#EAF3DE" stroke="#3B6D11" stroke-width="0.5"/>
+    <text x="554" y="192" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12.5" font-weight="500" fill="#27500A">Pod</text>
+  </g>
+
+  <g class="c-blue">
+    <rect x="334" y="266" width="150" height="40" rx="8" fill="#B5D4F4" stroke="#185FA5" stroke-width="0.5"/>
+    <text x="409" y="282" text-anchor="middle" font-family="sans-serif" font-size="12.5" font-weight="500" fill="#0C447C">CLB 直通 Pod</text>
+    <text x="409" y="296" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#0C447C">后端直接绑 Pod IP</text>
+  </g>
+  <line x1="484" y1="286" x2="512" y2="286" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <g class="c-green">
+    <rect x="516" y="266" width="76" height="40" rx="8" fill="#EAF3DE" stroke="#3B6D11" stroke-width="0.5"/>
+    <text x="554" y="286" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="12.5" font-weight="500" fill="#27500A">Pod</text>
+  </g>
+  <text x="60" y="336" font-family="sans-serif" font-size="12" fill="#2C2C2A">IngressClass 决定这条 Ingress 由哪个 Controller 接管；CLB 型由 tke-cloud-controller 同步</text>
+
+  <g>
+    <rect x="30" y="378" width="620" height="62" rx="8" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.5"/>
+    <text x="48" y="396" font-family="sans-serif" font-size="12" fill="#444441">Ingress 本身不转发流量，真正的转发由 CLB 执行——这是 CLB 型与 Nginx 型最大的区别</text>
+    <text x="48" y="414" font-family="sans-serif" font-size="12" fill="#444441">直通模式少一跳 NodePort，排障时先确认当前用的是哪条数据路径</text>
+    <text x="48" y="432" font-family="sans-serif" font-size="12" fill="#444441">tke-* 标签是控制器识别与保护 CLB 的依据，手工管理 CLB 时勿删改</text>
+  </g>
+</svg>

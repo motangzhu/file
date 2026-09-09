@@ -1,0 +1,5 @@
+netsh interface show interface
+
+netsh interface set interface "以太网" enabled
+
+netsh interface set interface "以太网" disabled
